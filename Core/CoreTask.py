@@ -74,3 +74,9 @@ class Task:
             self.importance_level = ImportanceLevel.INSIGNIFICANT
         else:
             self.importance_level = ImportanceLevel(value - decrement)
+
+
+# following code is just for local test
+if __name__ == '__main__':
+    task = Task('2022-8-1 23:00', start_time='2022-8-1 10:00')
+    print(task.status)
