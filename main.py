@@ -2,6 +2,7 @@
 # (Blame) Ruilin Who
 # CoAuthor: Ydy --- ydy2001@buaa.edu.cn
 
+from multiprocessing.sharedctypes import Value
 import sys
 import time
 from Core import CoreTask, CoreSchedule
@@ -17,6 +18,7 @@ from PyQt5.QtWidgets import (
     QAction,        # 点击菜单所对应的行为
     QLabel,
     QScrollArea,
+    QMessageBox,    # 消息框
 )
 from PyQt5.QtWidgets import (
     QGridLayout,
@@ -186,21 +188,42 @@ class MainUI(QMainWindow):
         self.fill_right()
 
     def setup_LOGIC(self):
+        # (ruilin) “确认新建任务” 按钮作为信号，链接到槽 “generate_task” 中
         self.right_input_button.clicked.connect(self.generate_task)
 
     def generate_task(self):
-        # 这里有个BUG，没有处理用户未输入内容时的默认值
-        # 未处理异常输入值
-        ddl = self.ddl_input_line.text()
+        # (dengyu) 这里有个BUG，没有处理用户未输入内容时的默认值, 未处理异常输入值
+        # (ruilin) 进行异常判断
+
+        try:
+            ddl = self.ddl_input_line.text()
+            time.strptime(ddl, "%Y-%m-%d %H:%M")
+        except ValueError:
+            msgbox = self.show_failure_msg('ddl时间格式错误', '时间格式为\n YYYY-MM-DD hh:mm')
+            return
+
         title = self.title_input_line.text()
         content = self.content_input_line.toPlainText()
         remark = self.remark_input_line.toPlainText()
-        start_time = self.start_time_input_line.text()
+
+        try:
+            start_time = self.start_time_input_line.text()
+            time.strptime(start_time, "%Y-%m-%d %H:%M")
+        except ValueError:
+            msgbox = self.show_failure_msg('开始时间格式错误', '时间格式为\n YYYY-MM-DD hh:mm')
+            return
+
         importance_level = self.importance_level_input_line.text()
         importance_level = ImportanceLevel(int(importance_level))
         task = CoreTask.Task(ddl, title, content, remark, start_time, importance_level)
         self.schedule.add_task(task=task)
         self.show_task(False, False) # date, user 参数暂时无用
+    
+    # (ruilin) 该函数根据输入的标题和文字显示对应“错误消息框”
+    def show_failure_msg(self, title:str, text:str) -> None:
+        msgbox = QMessageBox.information(self, title, text, QMessageBox.Ok)
+        
+        
 
 
 if __name__ == '__main__':
