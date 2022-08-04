@@ -199,7 +199,7 @@ class MainUI(QMainWindow):
             ddl = self.ddl_input_line.text()
             time.strptime(ddl, "%Y-%m-%d %H:%M")
         except ValueError:
-            msgbox = self.show_failure_msg('ddl时间格式错误', '时间格式为\n YYYY-MM-DD hh:mm')
+            self.show_failure_msg('ddl时间格式错误', '时间格式为\n YYYY-MM-DD hh:mm')
             return
 
         title = self.title_input_line.text()
@@ -210,7 +210,7 @@ class MainUI(QMainWindow):
             start_time = self.start_time_input_line.text()
             time.strptime(start_time, "%Y-%m-%d %H:%M")
         except ValueError:
-            msgbox = self.show_failure_msg('开始时间格式错误', '时间格式为\n YYYY-MM-DD hh:mm')
+            self.show_failure_msg('开始时间格式错误', '时间格式为\n YYYY-MM-DD hh:mm')
             return
 
         importance_level = self.importance_level_input_line.text()
