@@ -1,6 +1,6 @@
-from CoreTask import Task
-from CoreEnum import *
-from CoreArgorithm import *
+from .CoreTask import Task
+from .CoreEnum import *
+from .CoreArgorithm import *
 import functools
 
 

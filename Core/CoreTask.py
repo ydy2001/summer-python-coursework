@@ -1,5 +1,5 @@
 import time
-from CoreEnum import *
+from .CoreEnum import ImportanceLevel, TaskStatus, get_importance_value
 
 
 class Task:

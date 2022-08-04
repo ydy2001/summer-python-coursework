@@ -1,5 +1,5 @@
-from CoreTask import *
-from CoreEnum import *
+from .CoreTask import *
+from .CoreEnum import *
 
 
 def cmp_by_ddl(x: Task, y: Task):
