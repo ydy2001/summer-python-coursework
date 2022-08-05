@@ -65,106 +65,91 @@ class MainUI(QMainWindow):
     # 填右半部分
     def fill_right(self):
         self.set_right_input_window() # 综合了输入信息的小窗口
-        self.set_right_task_list()    # 设置当日任务展示列表
-
-    # 设置显示task的小窗口
-    def set_right_task_list(self):
-        # (experiment) 这个函数中的内容被移动到 set_right_input_window 的底部了
-        # label
-        # self.task_list_label = QLabel('任务列表: ')
-        # self.right_window_layout.addWidget(self.task_list_label, 11, 0, 1, 1)
-        # task_list 总体窗口
-        pass
-        
+        #self.set_right_task_list()    # 设置当日任务展示列表
 
     # 设置用于新建任务的小窗口
     def set_right_input_window(self):
-        # 设置总的 right_input_window
-        self.right_input_window = QWidget()
-        self.right_input_window_layout = QGridLayout()
-        self.right_input_window.setLayout(self.right_input_window_layout)
+        
         # 依次设置每个Task信息的输入
         # 标题
         self.title_input_label = QLabel('标题: ')
         self.title_input_line = QLineEdit()
         self.title_input_line.setPlaceholderText('请输入标题，默认为 untitled')
-        self.right_input_window_layout.addWidget(self.title_input_label,
+        self.right_window_layout.addWidget(self.title_input_label,
                                                  0, 0, 1, 1)
-        self.right_input_window_layout.addWidget(self.title_input_line,
+        self.right_window_layout.addWidget(self.title_input_line,
                                                  0, 1, 1, 5)
         # ddl
         self.ddl_input_label = QLabel('截止时间: ')
         self.ddl_input_line = QLineEdit()
-        self.ddl_input_line.setPlaceholderText('请输入截止时间，格式如 2022-01-01 23:59，该项必须输入')
-        self.right_input_window_layout.addWidget(self.ddl_input_label,
+        self.ddl_input_line.setPlaceholderText('请输入截止时间，格式如 2022-01-01 23:59，默认为无截止时间')
+        self.right_window_layout.addWidget(self.ddl_input_label,
                                                  1, 0, 1, 1)
-        self.right_input_window_layout.addWidget(self.ddl_input_line,
+        self.right_window_layout.addWidget(self.ddl_input_line,
                                                  1, 1, 1, 5)
         # start_time
         self.start_time_input_label = QLabel('开始时间: ')
         self.start_time_input_line = QLineEdit()
         self.start_time_input_line.setPlaceholderText('请输入任务开始时间，格式如2022-01-01 23:59，默认为当前系统时间')
-        self.right_input_window_layout.addWidget(self.start_time_input_label,
+        self.right_window_layout.addWidget(self.start_time_input_label,
                                                  2, 0, 1, 1)
-        self.right_input_window_layout.addWidget(self.start_time_input_line,
+        self.right_window_layout.addWidget(self.start_time_input_line,
                                                  2, 1, 1, 5)
         # importance_level
         self.importance_level_input_label = QLabel('重要程度: ')
         self.importance_level_input_line = QLineEdit()
-        self.importance_level_input_line.setPlaceholderText('请输入数字 0 ~ 4，数字越大代表该任务越重要')
-        self.right_input_window_layout.addWidget(self.importance_level_input_label,
+        self.importance_level_input_line.setPlaceholderText('请输入数字 0 - 4，数字越大代表该任务越重要')
+        self.right_window_layout.addWidget(self.importance_level_input_label,
                                                  3, 0, 1, 1)
-        self.right_input_window_layout.addWidget(self.importance_level_input_line,
+        self.right_window_layout.addWidget(self.importance_level_input_line,
                                                  3, 1, 1, 5)
         # tag
         self.tag_input_label = QLabel('任务标签: ')
         self.tag_input_line = QLineEdit()
         self.tag_input_line.setPlaceholderText('请设定任务标签，默认为 uncategorized')
-        self.right_input_window_layout.addWidget(self.tag_input_label,
+        self.right_window_layout.addWidget(self.tag_input_label,
                                                  4, 0, 1, 1)
-        self.right_input_window_layout.addWidget(self.tag_input_line,
+        self.right_window_layout.addWidget(self.tag_input_line,
                                                  4, 1, 1, 5)
         # content
         self.content_input_label = QLabel('任务内容: ')
         self.content_input_line = QTextEdit()
         self.content_input_line.setPlaceholderText('请输入任务内容')
-        self.right_input_window_layout.addWidget(self.content_input_label,
+        self.right_window_layout.addWidget(self.content_input_label,
                                                  5, 0, 1, 1)
-        self.right_input_window_layout.addWidget(self.content_input_line,
+        self.right_window_layout.addWidget(self.content_input_line,
                                                  5, 1, 3, 5)
         # remark
         self.remark_input_label = QLabel('备注: ')
         self.remark_input_line = QTextEdit()
         self.remark_input_line.setPlaceholderText('请输入备注')
-        self.right_input_window_layout.addWidget(self.remark_input_label,
-                                                 9, 0, 1, 1)
-        self.right_input_window_layout.addWidget(self.remark_input_line,
-                                                 9, 1, 1, 5)
+        self.right_window_layout.addWidget(self.remark_input_label,
+                                                 8, 0, 1, 1)
+        self.right_window_layout.addWidget(self.remark_input_line,
+                                                 8, 1, 2, 5)
+        
         # 设置确认新建任务按钮
         self.right_input_button = QPushButton("确认新建任务")
-        self.right_input_window_layout.addWidget(self.right_input_button,
-                                                 4, 6, 1, 1)
+        self.right_input_button.setFixedSize(200, 220)
+        self.right_window_layout.addWidget(self.right_input_button,
+                                                 0, 6, 5, 1)
         
         # (ruilin) 以下是原来的函数 set_right_task_list 中的内容
         self.right_task_list_window = QWidget()
         self.right_task_list_window_layout = QVBoxLayout()
         self.right_task_list_window.setLayout(self.right_task_list_window_layout)
         # 设置滚动
-        self.task_list_scroll = QScrollArea(self)
+        self.task_list_scroll = QScrollArea(self.right_window)
         self.task_list_scroll.setWidget(self.right_task_list_window)
         self.task_list_scroll.setWidgetResizable(True)
-        #self.right_input_window_layout.addWidget(self.task_list_scroll, 10, 0, 20, 7)
-
-        self.right_input_window_layout.addWidget(self.task_list_scroll, 10, 0, 20, 6)
+        self.right_window_layout.addWidget(self.task_list_scroll, 10, 0, 20, 7)
 
         # 显示滚动区中的任务内容
         self.show_task(time.strftime("%Y-%m-%d", time.localtime()), False)
-        # 将输入小窗口打包添加到 right_window_layout
-        self.right_window_layout.addWidget(self.right_input_window)
 
     def setup_UI(self):
         self.setWindowTitle('AweSomeSchedule')
-        self.resize(2400, 1400)
+        self.resize(1500, 1400)
         self.set_right_left()
         self.fill_left()
         self.fill_right()
@@ -177,9 +162,6 @@ class MainUI(QMainWindow):
     
     # 显示某用户某一天的日程，当前版本date, user参数尚未被使用
     def show_task(self, date, user):
-        '''
-        self.schedule = user.get_date_schedule(date)
-        '''
         # 排序
         self.schedule.sort_by_ddl()
         # 清空当前 task_list_window 中的对象
@@ -196,14 +178,13 @@ class MainUI(QMainWindow):
             self.right_task_list_window_layout.addWidget(temp)
 
     def generate_task(self):
-        # (ruilin) 添加异常判断和默认值
+        # (ruilin) 已添加异常判断和默认值
 
         # (ruilin) 截止时间
         try:
             ddl = self.ddl_input_line.text()
             if len(ddl) == 0:
-                self.show_failure_msg('没有输入截止时间', '时间格式为:\nYYYY-MM-DD hh:mm')
-                return
+                ddl = '2077-12-31 23:59'
             time.strptime(ddl, "%Y-%m-%d %H:%M")
         except ValueError:
             self.show_failure_msg('截止时间格式错误', '时间格式为:\nYYYY-MM-DD hh:mm')
@@ -252,7 +233,6 @@ class MainUI(QMainWindow):
         
         
         
-
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
