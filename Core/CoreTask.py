@@ -3,9 +3,15 @@ from .CoreEnum import ImportanceLevel, TaskStatus, get_importance_value
 
 
 class Task:
-    def __init__(self, ddl, title='unnamed', content='', remark='',
-                 start_time=time.strftime("%Y-%m-%d %H:%M", time.localtime()),
-                 importance_level=ImportanceLevel.NORMAL, tag='uncategorized'):
+    def __init__(self, 
+                 ddl:str, 
+                 title:str, 
+                 content:str,
+                 remark:str,
+                 start_time:str,
+                 importance_level:ImportanceLevel,
+                 tag:str = 'uncategorized'):
+
         self.ddl = ddl                            # ddl，要求格式为 YYYY-MM-DD hh:mm
         self.title = title                        # 标题
         self.content = content                    # 具体内容
@@ -17,10 +23,10 @@ class Task:
         self.update_status()                      # 根据当前时间，start_time，ddl更新任务状态
 
     def update_status(self):                      # 根据当前时间和状态更新任务状态
-        #########################################################
+        # 对于已完成、被删除和过期未完成的任务，不适用此方法
         if self.status in [TaskStatus.DELETED, TaskStatus.EXPIRED, TaskStatus.DONE]:
-            return # 对于已完成、被删除和过期未完成的任务，不适用此方法
-        #########################################################
+            return 
+        
         now_time = time.time() # 当前时间戳
         ddl_time = time.mktime(time.strptime(self.ddl, "%Y-%m-%d %H:%M")) # ddl时间戳
         start_time = time.mktime(time.strptime(self.start_time, "%Y-%m-%d %H:%M")) # start_time时间戳
