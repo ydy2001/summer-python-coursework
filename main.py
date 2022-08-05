@@ -118,15 +118,15 @@ class MainUI(QMainWindow):
         # 标题
         self.title_input_label = QLabel('标题: ')
         self.title_input_line = QLineEdit()
-        self.title_input_line.setPlaceholderText('请输入标题')
+        self.title_input_line.setPlaceholderText('请输入标题，默认为 untitled')
         self.right_input_window_layout.addWidget(self.title_input_label,
                                                  0, 0, 1, 1)
         self.right_input_window_layout.addWidget(self.title_input_line,
                                                  0, 1, 1, 5)
         # ddl
-        self.ddl_input_label = QLabel('DDL: ')
+        self.ddl_input_label = QLabel('截止时间: ')
         self.ddl_input_line = QLineEdit()
-        self.ddl_input_line.setPlaceholderText('请输入DDL，格式如2022-01-01 23:59')
+        self.ddl_input_line.setPlaceholderText('请输入截止时间，格式如 2022-01-01 23:59，该项必须输入')
         self.right_input_window_layout.addWidget(self.ddl_input_label,
                                                  1, 0, 1, 1)
         self.right_input_window_layout.addWidget(self.ddl_input_line,
@@ -192,29 +192,45 @@ class MainUI(QMainWindow):
         self.right_input_button.clicked.connect(self.generate_task)
 
     def generate_task(self):
-        # (dengyu) 这里有个BUG，没有处理用户未输入内容时的默认值, 未处理异常输入值
-        # (ruilin) 进行异常判断
+        # (ruilin) 添加异常判断和默认值
 
+        # (ruilin) 截止时间
         try:
             ddl = self.ddl_input_line.text()
+            if len(ddl) == 0:
+                self.show_failure_msg('没有输入截止时间', '时间格式为\n YYYY-MM-DD hh:mm')
+                return
             time.strptime(ddl, "%Y-%m-%d %H:%M")
         except ValueError:
-            self.show_failure_msg('ddl时间格式错误', '时间格式为\n YYYY-MM-DD hh:mm')
+            self.show_failure_msg('截止时间格式错误', '时间格式为\n YYYY-MM-DD hh:mm')
             return
 
+        # (ruilin) 标题及默认值
         title = self.title_input_line.text()
+        if len(title) == 0: title = 'untitled'
+
+        # (ruilin) 内容和备注，这两个值可以为空
         content = self.content_input_line.toPlainText()
         remark = self.remark_input_line.toPlainText()
 
+        # (ruilin) 开始时间
         try:
             start_time = self.start_time_input_line.text()
+            if len(start_time) == 0:
+                start_time = time.strftime("%Y-%m-%d %H:%M", time.localtime())
             time.strptime(start_time, "%Y-%m-%d %H:%M")
         except ValueError:
             self.show_failure_msg('开始时间格式错误', '时间格式为\n YYYY-MM-DD hh:mm')
             return
 
+        # (ruilin) 重要性级别，默认为 0
         importance_level = self.importance_level_input_line.text()
-        importance_level = ImportanceLevel(int(importance_level))
+        if len(importance_level) == 0:
+            importance_level = ImportanceLevel.INSIGNIFICANT
+        else:
+            importance_level = ImportanceLevel(int(importance_level))
+        
+        # (ruilin) 将 task 添加到 self.schedule
         task = CoreTask.Task(ddl, title, content, remark, start_time, importance_level)
         self.schedule.add_task(task=task)
         self.show_task(False, False) # date, user 参数暂时无用
