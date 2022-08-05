@@ -11,7 +11,6 @@ class Task:
                  start_time:str,
                  importance_level:ImportanceLevel,
                  tag:str = 'uncategorized'):
-
         self.ddl = ddl                            # ddl，要求格式为 YYYY-MM-DD hh:mm
         self.title = title                        # 标题
         self.content = content                    # 具体内容
@@ -37,6 +36,18 @@ class Task:
         else:
             self.status = TaskStatus.EXPIRED
 
+    def to_string(self) -> str:
+        text = self.title + \
+               '\n类型: ' + self.tag + \
+               '\n截止时间: ' + self.ddl
+        if len(self.content) != 0:
+            text += '\n内容: ' + self.content
+        if len(self.remark) != 0:
+            text += '\n备注: ' + self.remark
+        return text
+
+    # 以下函数暂时还未开始使用
+    # Currently not used. ========================================================
     def change_status(self, status):              # 主动指定更新任务状态
         self.status = status
 

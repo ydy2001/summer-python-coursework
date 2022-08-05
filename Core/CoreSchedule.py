@@ -11,6 +11,9 @@ class Schedule:
     def add_task(self, task: Task):
         self.tasks.append(task)
 
+    def remove_designated_task(self, task: Task):
+        self.tasks.remove(task)
+
     def remove_task(self):      # 删除状态被设定为 DELETED 的task
         new_tasks = list()
         for _ in self.tasks:

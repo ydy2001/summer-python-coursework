@@ -134,7 +134,7 @@ class MainUI(QMainWindow):
         self.right_window_layout.addWidget(self.right_input_button,
                                                  0, 6, 5, 1)
         
-        # (ruilin) 以下是原来的函数 set_right_task_list 中的内容
+        # $(ruilin) 以下是原来的函数 set_right_task_list 中的内容
         self.right_task_list_window = QWidget()
         self.right_task_list_window_layout = QVBoxLayout()
         self.right_task_list_window.setLayout(self.right_task_list_window_layout)
@@ -155,11 +155,15 @@ class MainUI(QMainWindow):
         self.fill_right()
 
     def setup_input_task_logic(self):
-        # (ruilin) “确认新建任务” 按钮作为信号，链接到槽 “generate_task” 中
+        # $(ruilin) “确认新建任务” 按钮作为信号，链接到槽 “generate_task” 中
         self.right_input_button.clicked.connect(self.generate_task)
 
     # <关于展示任务>==========================================================================
     
+    def delete_task(self):
+        self.schedule.remove_designated_task(self.sender().parent().task)
+        self.show_task(None, None)
+
     # 显示某用户某一天的日程，当前版本date, user参数尚未被使用
     def show_task(self, date, user):
         # 排序
@@ -175,12 +179,13 @@ class MainUI(QMainWindow):
         #####################################
         for _ in self.schedule.tasks:
             temp = BridgeTaskSmallWidget.TaskSmallWidget(_)
+            temp.del_but.clicked.connect(self.delete_task)
             self.right_task_list_window_layout.addWidget(temp)
 
     def generate_task(self):
-        # (ruilin) 已添加异常判断和默认值
+        # $(ruilin) 已添加异常判断和默认值
 
-        # (ruilin) 截止时间
+        # $(ruilin) 截止时间
         try:
             ddl = self.ddl_input_line.text()
             if len(ddl) == 0:
@@ -190,15 +195,15 @@ class MainUI(QMainWindow):
             self.show_failure_msg('截止时间格式错误', '时间格式为:\nYYYY-MM-DD hh:mm')
             return
 
-        # (ruilin) 标题及默认值
+        # $(ruilin) 标题及默认值
         title = self.title_input_line.text()
         if len(title) == 0: title = 'untitled'
 
-        # (ruilin) 内容和备注，这两个值可以为空
+        # $(ruilin) 内容和备注，这两个值可以为空
         content = self.content_input_line.toPlainText()
         remark = self.remark_input_line.toPlainText()
 
-        # (ruilin) 开始时间
+        # $(ruilin) 开始时间
         try:
             start_time = self.start_time_input_line.text()
             if len(start_time) == 0:
@@ -208,19 +213,21 @@ class MainUI(QMainWindow):
             self.show_failure_msg('开始时间格式错误', '时间格式为:\nYYYY-MM-DD hh:mm')
             return
 
-        # (ruilin) 重要性级别，默认为 0
+        # $(ruilin) 重要性级别，默认为 0
         importance_level = self.importance_level_input_line.text()
         if len(importance_level) == 0:
             importance_level = ImportanceLevel.INSIGNIFICANT
         else:
             importance_level = ImportanceLevel(int(importance_level))
         
-        # (ruilin) 将 task 添加到 self.schedule
+        # $(ruilin) 将 task 添加到 self.schedule
         task = CoreTask.Task(ddl, title, content, remark, start_time, importance_level)
-        self.schedule.add_task(task=task)
+        self.schedule.add_task(task = task)
+
+
         self.show_task(False, False) # date, user 参数暂时无用
     
-    # (ruilin) utils: 该函数根据输入的标题和文字显示对应“错误消息框”
+    # $(ruilin) utils: 该函数根据输入的标题和文字显示对应“错误消息框”
     def show_failure_msg(self, title:str, text:str) -> None:
         # msgbox = QMessageBox.information(self, title, text, QMessageBox.Ok)
         msgbox = QMessageBox()
@@ -232,7 +239,11 @@ class MainUI(QMainWindow):
         msgbox.exec()
         
         
-        
+
+def mainui_remove_task(task:CoreTask.Task):
+    global main_ui
+    main_ui.delete_task(task)
+
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
