@@ -5,6 +5,9 @@
 from multiprocessing.sharedctypes import Value
 import sys
 import time
+import json
+
+from nbformat import write
 from Core import CoreTask, CoreSchedule
 from Core.CoreEnum import ImportanceLevel
 from Bridge import BridgeTaskSmallWidget
@@ -165,7 +168,7 @@ class MainUI(QMainWindow):
         self.show_task(None, None)
 
     # 显示某用户某一天的日程，当前版本date, user参数尚未被使用
-    def show_task(self, date, user):
+    def show_task(self, date, user, store=True):
         # 排序
         self.schedule.sort_by_ddl()
         # 清空当前 task_list_window 中的对象
@@ -181,6 +184,12 @@ class MainUI(QMainWindow):
             temp = BridgeTaskSmallWidget.TaskSmallWidget(_)
             temp.del_but.clicked.connect(self.delete_task)
             self.right_task_list_window_layout.addWidget(temp)
+        
+        if store:
+            with open(user_name + '_info', 'w') as f:
+                print('Dict = ', self.schedule.to_dict())
+                json.dump(self.schedule.to_dict(), f)
+
 
     def generate_task(self):
         # $(ruilin) 已添加异常判断和默认值
@@ -240,10 +249,8 @@ class MainUI(QMainWindow):
         
         
 
-def mainui_remove_task(task:CoreTask.Task):
-    global main_ui
-    main_ui.delete_task(task)
 
+user_name = 'Administrator_ruilin'
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)

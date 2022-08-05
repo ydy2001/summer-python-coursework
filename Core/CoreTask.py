@@ -1,5 +1,13 @@
 import time
-from .CoreEnum import ImportanceLevel, TaskStatus, get_importance_value
+from .CoreEnum import (
+    Int_to_TaskStatus,
+    Int_to_importance,
+    TaskStatus_to_int,
+    Importance_to_int, 
+    ImportanceLevel, 
+    TaskStatus, 
+    get_importance_value,
+)
 
 
 class Task:
@@ -10,7 +18,9 @@ class Task:
                  remark:str,
                  start_time:str,
                  importance_level:ImportanceLevel,
-                 tag:str = 'uncategorized'):
+                 tag:str = 'uncategorized',
+                 status = TaskStatus.NOT_STARTED
+                 ):
         self.ddl = ddl                            # ddl，要求格式为 YYYY-MM-DD hh:mm
         self.title = title                        # 标题
         self.content = content                    # 具体内容
@@ -18,7 +28,7 @@ class Task:
         self.start_time = start_time              # 任务开始时间， 默认为当前系统时间，要求格式为 YYYY-MM-DD hh:mm
         self.importance_level = importance_level  # 重要程度
         self.tag = tag                            # 任务tag
-        self.status = TaskStatus.NOT_STARTED
+        self.status = status                      # (ruilin) 注意这里通过输入的参数确定，为了载入本地数据
         self.update_status()                      # 根据当前时间，start_time，ddl更新任务状态
 
     def update_status(self):                      # 根据当前时间和状态更新任务状态
@@ -45,6 +55,19 @@ class Task:
         if len(self.remark) != 0:
             text += '\n备注: ' + self.remark
         return text
+
+    # 有关文件保存的 ==============================================================
+    def to_dict(self) -> dict:
+        return {
+            'ddl' : str(self.ddl),
+            'title' : self.title,
+            'content' : self.content,
+            'remark' : self.remark,
+            'start_time' : str(self.start_time),
+            'importance_level' : Importance_to_int[self.importance_level],
+            'tag': self.tag,
+            'status' : TaskStatus_to_int[self.status]
+        }
 
     # 以下函数暂时还未开始使用
     # Currently not used. ========================================================
@@ -89,6 +112,20 @@ class Task:
             self.importance_level = ImportanceLevel.INSIGNIFICANT
         else:
             self.importance_level = ImportanceLevel(value - decrement)
+
+
+# $(ruilin) 通过我们的协议，来载入一个用 json 存放的 Task
+def load_task_from_dict(dic : dict) -> Task:
+    return Task(
+        ddl = dic['ddl'],
+        title = dic['title'],
+        content = dic['content'],
+        remark = dic['remark'],
+        start_time = dic['start_time'],
+        importance_level = Int_to_importance(dic['importance_level']),
+        tag = dic['tag'],
+        status = Int_to_TaskStatus(dic['status'])
+    )
 
 
 # following code is just for local test
