@@ -185,6 +185,7 @@ class MainUI(QMainWindow):
             temp.del_but.clicked.connect(self.delete_task)
             self.right_task_list_window_layout.addWidget(temp)
         
+        # $(ruilin) 每次调用 show_task 的时候，都会重新刷新本地数据
         if store:
             with open(user_name + '_info', 'w') as f:
                 print('Dict = ', self.schedule.to_dict())
