@@ -7,10 +7,10 @@ import sys
 import time
 import json
 
-from nbformat import write
+# from nbformat import write
 from Core import CoreTask, CoreSchedule
-from Core.CoreEnum import ImportanceLevel
-from Bridge import BridgeTaskSmallWidget
+from Core.CoreEnum import ImportanceLevel, get_importance_value
+from Bridge import BridgeTaskSmallWidget, BridgeTaskBigWIdget
 from PyQt5.QtWidgets import (
     QApplication, 
     QWidget, 
@@ -22,6 +22,7 @@ from PyQt5.QtWidgets import (
     QLabel,
     QScrollArea,
     QMessageBox,    # 消息框
+    QInputDialog,
 )
 from PyQt5.QtWidgets import (
     QGridLayout,
@@ -35,6 +36,8 @@ class MainUI(QMainWindow):
         super().__init__()
         # 由于beta版限制，在此声明 self.schedule
         self.schedule = CoreSchedule.Schedule()
+        ## showing_big_widget 为当前在 detail window 中展示的 TaskBigWidget
+        self.showing_big_widget = None
         self.setup_UI()
         self.setup_input_task_logic()
 
@@ -57,13 +60,16 @@ class MainUI(QMainWindow):
         self.main_window_layout.addWidget(self.right_window, 0, 1, 30, 7)
         # 设置主窗口为最终显示窗口
         self.setCentralWidget(self.main_window)
+        ## 设置一个单独的详细信息窗口
+        self.detail_window = QWidget()
+        self.detail_window_layout = QGridLayout()
+        self.detail_window.setLayout(self.detail_window_layout)
+        self.main_window_layout.addWidget(self.detail_window, 0, 10, 30, 6)
 
     # 填左半部分
     def fill_left(self):
         self.left_button0 = QPushButton("月历模式")
-        self.left_button1 = QPushButton("重要性模式")
         self.left_window_layout.addWidget(self.left_button0, 0, 0, 1, 1)
-        self.left_window_layout.addWidget(self.left_button1, 1, 0, 1, 1)
 
     # 填右半部分
     def fill_right(self):
@@ -152,19 +158,51 @@ class MainUI(QMainWindow):
 
     def setup_UI(self):
         self.setWindowTitle('AweSomeSchedule')
-        self.resize(1500, 1400)
+        self.resize(2000, 1500)
         self.set_right_left()
         self.fill_left()
         self.fill_right()
 
     def setup_input_task_logic(self):
         # $(ruilin) “确认新建任务” 按钮作为信号，链接到槽 “generate_task” 中
-        self.right_input_button.clicked.connect(self.generate_task)
+        ## 现链接到槽 generate_task_shell 中
+        self.right_input_button.clicked.connect(self.generate_task_shell)
+
+    def generate_task_shell(self):
+        self.generate_task(self.ddl_input_line.text(),
+                           self.title_input_line.text(),
+                           self.content_input_line.toPlainText(),
+                           self.remark_input_line.toPlainText(),
+                           self.start_time_input_line.text(),
+                           self.importance_level_input_line.text(),
+                           self.tag_input_line.text())
 
     # <关于展示任务>==========================================================================
-    
-    def delete_task(self):
+
+    def clear_layout(self, layout):
+        item_list = list(range(layout.count()))
+        item_list.reverse()
+        for i in item_list:
+            item = layout.itemAt(i)
+            layout.removeItem(item)
+            if item.widget():
+                item.widget().deleteLater()
+
+    # 该函数为原 delete_task，仅适用于按钮点击删除，故更名 delete_task_logic
+    def delete_task_logic(self):
         self.schedule.remove_designated_task(self.sender().parent().task)
+        ## 若是当前详细展示的任务被删除，同时删除详细信息
+        if self.showing_big_widget.task == self.sender().parent().task:
+            self.clear_layout(self.detail_window_layout)
+        self.show_task(None, None)
+
+    # 更加泛化的 delete_task
+    # 其中 trick 参数用于决定是否关联性地删除当前显示的任务
+    def delete_task(self, task: CoreTask.Task, trick=False):
+        self.schedule.remove_designated_task(task)
+        if trick == False:
+            if self.showing_big_widget.task == task:
+                self.clear_layout(self.detail_window_layout)
         self.show_task(None, None)
 
     # 显示某用户某一天的日程，当前版本date, user参数尚未被使用
@@ -172,69 +210,88 @@ class MainUI(QMainWindow):
         # 排序
         self.schedule.sort_by_ddl()
         # 清空当前 task_list_window 中的对象
-        item_list = list(range(self.right_task_list_window_layout.count()))
-        item_list.reverse()
-        for i in item_list:
-            item = self.right_task_list_window_layout.itemAt(i)
-            self.right_task_list_window_layout.removeItem(item)
-            if item.widget():
-                item.widget().deleteLater()
+        self.clear_layout(self.right_task_list_window_layout)
         #####################################
         for _ in self.schedule.tasks:
             temp = BridgeTaskSmallWidget.TaskSmallWidget(_)
-            temp.del_but.clicked.connect(self.delete_task)
+            temp.del_but.clicked.connect(self.delete_task_logic)
+            temp.detail_but.clicked.connect(self.show_task_detail)
             self.right_task_list_window_layout.addWidget(temp)
+        if len(self.schedule.tasks) < 6:
+            for i in range(6 - len(self.schedule.tasks)):
+                temp = QLabel()
+                self.right_task_list_window_layout.addWidget(temp)
         
         if store:
             with open(user_name + '_info', 'w') as f:
                 print('Dict = ', self.schedule.to_dict())
                 json.dump(self.schedule.to_dict(), f)
 
-
-    def generate_task(self):
+    def generate_task(self, _ddl, _title, _content, _remark, _start_time, _importance_level, _tag,
+                      check_only = False):
         # $(ruilin) 已添加异常判断和默认值
+        ## 修复了忘记处理tag的bug
+        ## 修复了importance_level异常值判断的问题
+        ## 更改为重用性更高的版本
+        ## 增加了返回值：成功时返回生成的 task 或 Ture，出错时返回False
+        ## 增加了参数 check_only，当其被设为True，本函数将只进行参数检查，不实际生成任务
 
         # $(ruilin) 截止时间
         try:
-            ddl = self.ddl_input_line.text()
+            ddl = _ddl
             if len(ddl) == 0:
                 ddl = '2077-12-31 23:59'
             time.strptime(ddl, "%Y-%m-%d %H:%M")
         except ValueError:
             self.show_failure_msg('截止时间格式错误', '时间格式为:\nYYYY-MM-DD hh:mm')
-            return
+            return False
 
         # $(ruilin) 标题及默认值
-        title = self.title_input_line.text()
+        title = _title
         if len(title) == 0: title = 'untitled'
 
         # $(ruilin) 内容和备注，这两个值可以为空
-        content = self.content_input_line.toPlainText()
-        remark = self.remark_input_line.toPlainText()
+        content = _content
+        remark = _remark
 
         # $(ruilin) 开始时间
         try:
-            start_time = self.start_time_input_line.text()
+            start_time = _start_time
             if len(start_time) == 0:
                 start_time = time.strftime("%Y-%m-%d %H:%M", time.localtime())
             time.strptime(start_time, "%Y-%m-%d %H:%M")
         except ValueError:
             self.show_failure_msg('开始时间格式错误', '时间格式为:\nYYYY-MM-DD hh:mm')
-            return
+            return False
 
         # $(ruilin) 重要性级别，默认为 0
-        importance_level = self.importance_level_input_line.text()
+        importance_level = str(_importance_level)
         if len(importance_level) == 0:
             importance_level = ImportanceLevel.INSIGNIFICANT
         else:
-            importance_level = ImportanceLevel(int(importance_level))
-        
-        # $(ruilin) 将 task 添加到 self.schedule
-        task = CoreTask.Task(ddl, title, content, remark, start_time, importance_level)
-        self.schedule.add_task(task = task)
+            ## 添加非法值判断
+            try:
+                importance_level = int(importance_level)
+                if importance_level < 0 or importance_level > 4:
+                    self.show_failure_msg('重要程度输入错误', '请输入0~4之间的整数')
+                    return False
+                importance_level = ImportanceLevel(int(importance_level))
+            except ValueError:
+                self.show_failure_msg('重要程度输入错误', '请输入0~4之间的整数')
+                return False
 
+        ## tag
+        tag = _tag
+        if len(tag) == 0: tag = 'uncategorized'
 
-        self.show_task(False, False) # date, user 参数暂时无用
+        if check_only == False:
+            # $(ruilin) 将 task 添加到 self.schedule
+            task = CoreTask.Task(ddl, title, content, remark, start_time, importance_level, tag)
+            self.schedule.add_task(task = task)
+            self.show_task(False, False) # date, user 参数暂时无用
+            return task
+        else:
+            return True
     
     # $(ruilin) utils: 该函数根据输入的标题和文字显示对应“错误消息框”
     def show_failure_msg(self, title:str, text:str) -> None:
@@ -246,8 +303,92 @@ class MainUI(QMainWindow):
         msgbox.setStandardButtons(QMessageBox.Ok)
         msgbox.setStyleSheet('''QLabel{min-width:300px; min-height:150px}''')
         msgbox.exec()
-        
-        
+
+    def show_task_detail(self):
+        temp_big_task_widget = BridgeTaskBigWIdget.TaskBigWidget(self.sender().parent().task)
+        temp_big_task_widget.ddl_mod_but.clicked.connect(self.mod_logic)
+        temp_big_task_widget.title_mod_but.clicked.connect(self.mod_logic)
+        temp_big_task_widget.content_mod_but.clicked.connect(self.mod_logic)
+        temp_big_task_widget.remark_mod_but.clicked.connect(self.mod_logic)
+        temp_big_task_widget.tag_mod_but.clicked.connect(self.mod_logic)
+        temp_big_task_widget.importance_level_mod_but.clicked.connect(self.mod_logic)
+        self.showing_big_widget = temp_big_task_widget
+        self.detail_window_layout.addWidget(temp_big_task_widget, 0, 0, 30, 6)
+
+    def mod_logic(self):
+        task = self.sender().parent().parent().task
+        parent = self.sender().parent().parent()
+        # ddl mod
+        if self.sender() == self.showing_big_widget.ddl_mod_but:
+            ddl, ok = QInputDialog.getText(self, '更改DDL', '新DDL', QLineEdit.Normal,
+                                           parent.task.ddl)
+            if ok:
+                if self.generate_task(ddl, task.title, task.content, task.remark,
+                                      task.start_time, get_importance_value(task.importance_level),
+                                      task.tag, check_only=True):
+                    parent.ddl_label.setText('DDL: ' + ddl)
+                    self.delete_task(task, trick=True)
+                    new_task = self.generate_task(ddl, task.title, task.content, task.remark,
+                                       task.start_time, get_importance_value(task.importance_level),
+                                       task.tag, check_only=False)
+                    parent.task = new_task
+        # importance mod
+        if self.sender() == self.showing_big_widget.importance_level_mod_but:
+            importance_level, ok = QInputDialog.getText(self, '更改重要程度', '新重要程度', QLineEdit.Normal)
+            if ok:
+                if self.generate_task(task.ddl, task.title, task.content, task.remark,
+                                      task.start_time, importance_level,
+                                      task.tag, check_only=True):
+                    parent.importance_level_label.setText(str(ImportanceLevel(int(importance_level))))
+                    self.delete_task(task, trick=True)
+                    new_task = self.generate_task(task.ddl, task.title, task.content, task.remark,
+                                       task.start_time, importance_level,
+                                       task.tag, check_only=False)
+                    parent.task = new_task
+        # title mod
+        if self.sender() == self.showing_big_widget.title_mod_but:
+            title, ok = QInputDialog.getText(self, '更改标题', '新标题', QLineEdit.Normal,
+                                           parent.task.title)
+            if ok: # no need to check
+                    parent.title_label.setText(title)
+                    self.delete_task(task, trick=True)
+                    new_task = self.generate_task(task.ddl, title, task.content, task.remark,
+                                       task.start_time, get_importance_value(task.importance_level),
+                                       task.tag, check_only=False)
+                    parent.task = new_task
+        # tag mod
+        if self.sender() == self.showing_big_widget.tag_mod_but:
+            tag, ok = QInputDialog.getText(self, '更改任务标签', '新标签', QLineEdit.Normal,
+                                           parent.task.tag)
+            if ok: # no need to check
+                    parent.tag_label.setText('任务标签: ' + tag)
+                    self.delete_task(task, trick=True)
+                    new_task = self.generate_task(task.ddl, task.title, task.content, task.remark,
+                                       task.start_time, get_importance_value(task.importance_level),
+                                       tag, check_only=False)
+                    parent.task = new_task
+        # content mod
+        if self.sender() == self.showing_big_widget.content_mod_but:
+            content, ok = QInputDialog.getMultiLineText(self, '更改任务内容', '新内容',
+                                           parent.task.content)
+            if ok: # no need to check
+                    parent.content_content.setText('任务内容: \n' + content)
+                    self.delete_task(task, trick=True)
+                    new_task = self.generate_task(task.ddl, task.title, content, task.remark,
+                                       task.start_time, get_importance_value(task.importance_level),
+                                       task.tag, check_only=False)
+                    parent.task = new_task
+        # remark mod
+        if self.sender() == self.showing_big_widget.remark_mod_but:
+            remark, ok = QInputDialog.getMultiLineText(self, '更改任务备注', '新备注',
+                                           parent.task.remark)
+            if ok: # no need to check
+                    parent.remark_content.setText('任务备注: \n' + remark)
+                    self.delete_task(task, trick=True)
+                    new_task = self.generate_task(task.ddl, task.title, task.content, remark,
+                                       task.start_time, get_importance_value(task.importance_level),
+                                       task.tag, check_only=False)
+                    parent.task = new_task
 
 
 user_name = 'Administrator_ruilin'

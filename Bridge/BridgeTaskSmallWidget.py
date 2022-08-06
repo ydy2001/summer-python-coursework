@@ -14,6 +14,8 @@ class TaskSmallWidget(QWidget):
 
         self.label = QLabel(text=text, parent=self)
         self.del_but = QPushButton(text='删除', parent=self)
+        self.detail_but = QPushButton(text='查看任务详情', parent=self)
 
         self.main_layout.addWidget(self.label, 0, 0, 1, 5)
         self.main_layout.addWidget(self.del_but, 0, 5, 1, 1)
+        self.main_layout.addWidget(self.detail_but, 0, 6, 1, 1)
