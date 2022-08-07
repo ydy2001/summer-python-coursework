@@ -36,7 +36,7 @@ Importance_to_int = {
     ImportanceLevel.URGENT : 4
 }
 
-Int_to_importance = { value : key for (value, key) in Importance_to_int.items()}
+Int_to_importance = { value : key for (key, value) in Importance_to_int.items()}
 
 def get_importance_value(other):
     if other == ImportanceLevel.INSIGNIFICANT:
