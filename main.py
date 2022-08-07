@@ -38,6 +38,8 @@ class MainUI(QMainWindow):
         self.schedule = CoreSchedule.Schedule()
         ## showing_big_widget 为当前在 detail window 中展示的 TaskBigWidget
         self.showing_big_widget = None
+        ### 新增 current_user, 用于指示当前用户
+        self.current_user = None
         self.setup_UI()
         self.setup_input_task_logic()
 
