@@ -48,12 +48,14 @@ class Task:
 
     def to_string(self) -> str:
         text = self.title + \
-               '\n类型: ' + self.tag + \
+               '\n任务标签: ' + self.tag + \
                '\n截止时间: ' + self.ddl
+        '''
         if len(self.content) != 0:
             text += '\n内容: ' + self.content
         if len(self.remark) != 0:
             text += '\n备注: ' + self.remark
+        '''
         return text
 
     # 有关文件保存的 ==============================================================
