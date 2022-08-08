@@ -22,9 +22,12 @@ from PyQt5.QtWidgets import (
     QGridLayout,    # 网格状布局
     QSizePolicy,
     QSpinBox,
+    QDialog,
+    QVBoxLayout,
+    QScrollArea,
 )
 from matplotlib import widgets
-
+from Bridge.BridgeTaskSmallWidget import *
 from Core.CoreSchedule import Schedule
 
 # Monthlendar 是我自己创的一个词，指月历
@@ -39,8 +42,8 @@ class Monthlendar(QWidget):
 
         # $(ruilin) 默认的年份, 月份为当前时间
         today = datetime.datetime.today()
-        self.current_year = today.year
-        self.current_month = today.month
+        self.current_year = 2077 # today.year
+        self.current_month = 12 # today.month
 
         # $(ruilin) 选择年份
         self.year_spinbox = QSpinBox()
@@ -72,6 +75,7 @@ class Monthlendar(QWidget):
         self.button_Adaptive = QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
         for wg in self.widgets:
             wg.setSizePolicy(self.button_Adaptive)
+            wg.setParent(self)
 
         # $(ruilin) 添加“星期几”标识
         for i in range(7):
@@ -83,9 +87,25 @@ class Monthlendar(QWidget):
             for j in range(7):
                 self.month_lendar_layout.addWidget(self.widgets[7 * i + j], i + 2, j, 1, 1)
                 
+
         self.flush()
 
     def year__month_changed(self):
+
+        # (ruilin) 断开之前的信号与槽的链接
+        # (ruilin) 如果没有下面这几行代码，会导致一个信号链接到多个槽里(多重链接到一个函数)，最后槽函数被多次调用        
+        first_day_of_month = datetime.datetime(
+            year = self.current_year,
+            month = self.current_month,
+            day = 1
+        )
+        cur_day = first_day_of_month.weekday()
+        this_month_days = calendar.Calendar().itermonthdates(self.current_year, self.current_month)
+        for day in this_month_days:
+            if day.month != self.current_month: continue
+            self.widgets[cur_day].clicked.disconnect(self.trigger_display_today)
+            cur_day += 1
+        # (ruilin) /**/
 
         self.current_year = int(self.year_spinbox.value())
         self.current_month = int(self.month_spinbox.value())
@@ -111,6 +131,10 @@ class Monthlendar(QWidget):
         for wg in self.widgets: # $(ruilin) 刷新之前清空
             wg.setText('')
 
+        # (ruilin) 这个字典映射关系为 { idx of self.widgets => date}
+        # (ruilin) 其作用是在点击按钮的时候能够方便的找到是哪一天
+
+        self.idx_to_day = {}
         for day in this_month_days:
             # print('day = ', day, ' cur_day = ', cur_day)
             if day.month != self.current_month: continue
@@ -128,14 +152,96 @@ class Monthlendar(QWidget):
             if today_ddl_count:
                 today_text += '\n 今日有{}件事情截止'.format(today_ddl_count)
 
+                # (ruilin) 在当前日期上显示三条事情
                 for i in range(min(3, len(today_tasks))):
                     tsk = today_tasks[i]
                     today_text += "\n{} : {}".format(i + 1, tsk.title)
 
+            # (ruilin) 在按钮上面展示相应的文字
             self.widgets[cur_day].setText(today_text)
+
+            # (ruilin) 点击按钮可以查看详细的信息
+            self.widgets[cur_day].clicked.connect(self.trigger_display_today)
+
+            # (ruilin) 设置映射字典
+            self.idx_to_day[cur_day] = day
+
             cur_day += 1
 
-            
+    def trigger_do_nothing(self):
+        # (ruilin) 什么也不做
+        pass
+
+    def trigger_display_today(self):
+
+        # (ruilin) idx 是这个按钮的 id
+        idx = self.widgets.index(self.sender())
+        print('id = ', idx, self.idx_to_day[idx])
+        self.today = self.idx_to_day[idx]
+
+        # (ruilin) 弹出详细信息窗口，进行基本设置
+        self.info_dialog = QDialog()
+        self.info_dialog.setWindowTitle('任务详情')
+        self.info_dialog.resize(1000, 800)
+
+        self.info_dialog_layout = QGridLayout()
+        self.info_dialog.setLayout(self.info_dialog_layout)
+
+        # (ruilin) 弹出详细信息窗口中显示主题为一个canvas
+        self.canvas = QWidget()
+        self.canvas_layout = QVBoxLayout()
+        self.canvas.setLayout(self.canvas_layout)
+        
+        # (ruilin) 使用ScrollArea 来包装这个Canvas
+        self.canvas_scroll_area = QScrollArea()
+        self.canvas_scroll_area.setWidget(self.canvas)
+        self.canvas_scroll_area.setWidgetResizable(True)
+        self.info_dialog_layout.addWidget(self.canvas_scroll_area)
+
+        # (ruilin) 将是当日的任务展示出来
+        goint_to_show_task = []
+        for tsk in self.schedule.tasks:
+            (yy1, mm1, dd1) = tsk.ddl_year_and_month()
+            if yy1 == self.today.year and mm1 == self.today.month and dd1 == self.today.day:
+                goint_to_show_task.append(tsk)
+                temp_bridge_widget = TaskSmallWidget_2(tsk)
+                self.canvas_layout.addWidget(temp_bridge_widget)
+                temp_bridge_widget.del_but.clicked.connect(self.trigger_bridge_widget_del)
+
+
+
+        self.info_dialog.exec_()
+
+    # (ruilin) 不知道为啥，需要用这个函数来请理 Layout
+    def clear_layout(self, layout):
+        item_list = list(range(layout.count()))
+        item_list.reverse()
+        for i in item_list:
+            item = layout.itemAt(i)
+            layout.removeItem(item)
+            if item.widget():
+                item.widget().deleteLater()
+
+    # (ruilin) 在详情展示中选择删除该任务
+    def trigger_bridge_widget_del(self):
+        print(self.sender())
+        print(self.sender().parent())
+        print(self.sender().parent().parent())
+
+        bridge_widget = self.sender().parent()
+        canvas = self.sender().parent().parent()
+
+        self.schedule.remove_designated_task(bridge_widget.task)
+        self.flush()
+        
+        self.clear_layout(self.canvas_layout)
+        # (ruilin) 一个暴力的刷新方式
+        for tsk in self.schedule.tasks:
+            (yy1, mm1, dd1) = tsk.ddl_year_and_month()
+            if yy1 == self.today.year and mm1 == self.today.month and dd1 == self.today.day:
+                temp_bridge_widget = TaskSmallWidget_2(tsk)
+                self.canvas_layout.addWidget(temp_bridge_widget)
+                temp_bridge_widget.del_but.clicked.connect(self.trigger_bridge_widget_del)
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)

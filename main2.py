@@ -224,8 +224,6 @@ class MainUI(QMainWindow):
         # (ruilin) 将 schedule 中的每个 Task 使用一个Widget进行展示
         for _ in self.schedule.tasks:
             temp = BridgeTaskSmallWidget.TaskSmallWidget(_)
-            # temp.del_but.clicked.connect(self.delete_task_logic)
-            # temp.detail_but.clicked.connect(self.show_task_detail)
             temp.del_but.clicked.connect(self.trigger_delete_task)
             temp.detail_but.clicked.connect(self.show_task_settings_dialog)
             self.right_task_list_window_layout.addWidget(temp)
@@ -435,15 +433,14 @@ class MainUI(QMainWindow):
         self.month_calander = Monthlendar(self.schedule)
         self.main_window_layout.addWidget(self.month_calander, 0, 1, 30, 16)
 
+
     # (ruilin) 切换到传统模式
     def traditional_triggered(self):
 
         if self.current_UI_mode == UI_mode.TRADITIONAL: return
         self.current_UI_mode = UI_mode.TRADITIONAL
 
-        # (ruilin) how to clear this?
         self.clear_layout(self.month_calander.month_lendar_layout)
-        print('tradition mode clicked')
         self.main_window_layout.removeWidget(self.month_calander)
         self.fill_right()
 
