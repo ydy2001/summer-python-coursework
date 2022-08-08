@@ -51,22 +51,11 @@ class MainUI(QMainWindow):
         self.left_window = QWidget()
         self.left_window_layout = QGridLayout()
         self.left_window.setLayout(self.left_window_layout)
-        # 设置右窗口
-        self.right_window = QWidget()
-        self.right_window_layout = QGridLayout()
-        self.right_window.setLayout(self.right_window_layout)
-        # 合并左右窗口至主窗口
+        # 合并左至主窗口
+        # (ruilin) 原来的传统模式窗口已经被移动到 fill_right 函数中
         self.main_window_layout.addWidget(self.left_window, 0, 0, 30, 1)
-        self.main_window_layout.addWidget(self.right_window, 0, 1, 30, 7)
         # 设置主窗口为最终显示窗口
         self.setCentralWidget(self.main_window)
-
-        ## 设置一个单独的详细信息窗口
-        
-        self.detail_window = QWidget()
-        self.detail_window_layout = QGridLayout()
-        self.detail_window.setLayout(self.detail_window_layout)
-        self.main_window_layout.addWidget(self.detail_window, 0, 10, 30, 6)
         
 
     # 填左半部分
@@ -85,7 +74,22 @@ class MainUI(QMainWindow):
     
 
     # 填右半部分
+    # (ruilin) fill_right 可能有歧义
+    # (ruilin) 在新版本中，它将会构造并创建一个新的传统模式窗口
     def fill_right(self):
+
+        # 设置右窗口
+        self.right_window = QWidget()
+        self.right_window_layout = QGridLayout()
+        self.right_window.setLayout(self.right_window_layout)
+        # 合并右窗口至主窗口
+        self.main_window_layout.addWidget(self.right_window, 0, 1, 30, 7)
+        ## 设置一个单独的详细信息窗口
+        self.detail_window = QWidget()
+        self.detail_window_layout = QGridLayout()
+        self.detail_window.setLayout(self.detail_window_layout)
+        self.main_window_layout.addWidget(self.detail_window, 0, 10, 30, 6)
+
         self.set_right_input_window() # 综合了输入信息的小窗口
 
     # 设置用于新建任务的小窗口
@@ -441,7 +445,7 @@ class MainUI(QMainWindow):
         self.clear_layout(self.month_calander.month_lendar_layout)
         print('tradition mode clicked')
         self.main_window_layout.removeWidget(self.month_calander)
-        self.main_window_layout.addWidget(self.right_window, 0, 1, 30, 7)
+        self.fill_right()
 
 user_name = 'Administrator_ruilin'
 
