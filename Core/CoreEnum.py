@@ -3,6 +3,12 @@ from turtle import done
 
 
 @unique
+class UI_mode(Enum):
+    TRADITIONAL = 0
+    CALANDAR = 1
+
+
+@unique
 class TaskStatus(Enum):
     DELETED = -3        # 被删除
     EXPIRED = -2        # 过期未完成

@@ -2,12 +2,12 @@
 # (Blame) Ruilin Who
 # CoAuthor: Ydy --- ydy2001@buaa.edu.cn
 
-from multiprocessing.sharedctypes import Value
 import sys
 import time
 import json
 
-# from nbformat import write
+
+from month_lendar import *
 from Core import CoreTask, CoreSchedule
 from Core.CoreEnum import *
 from Bridge import BridgeTaskSmallWidget, BridgeTaskBigWIdget
@@ -24,9 +24,7 @@ from PyQt5.QtWidgets import (
     QMessageBox,    # 消息框
     QInputDialog,
     QDialog,        # 对话输入框
-    QSizePolicy
-)
-from PyQt5.QtWidgets import (
+    QSizePolicy,
     QGridLayout,
     QVBoxLayout,
 )
@@ -62,16 +60,29 @@ class MainUI(QMainWindow):
         self.main_window_layout.addWidget(self.right_window, 0, 1, 30, 7)
         # 设置主窗口为最终显示窗口
         self.setCentralWidget(self.main_window)
+
         ## 设置一个单独的详细信息窗口
+        
         self.detail_window = QWidget()
         self.detail_window_layout = QGridLayout()
         self.detail_window.setLayout(self.detail_window_layout)
         self.main_window_layout.addWidget(self.detail_window, 0, 10, 30, 6)
+        
 
     # 填左半部分
     def fill_left(self):
-        self.left_button0 = QPushButton("月历模式")
+
+        # (ruilin) 默认时 UI 为传统模式
+        self.current_UI_mode = UI_mode.TRADITIONAL
+
+        self.left_button0 = QPushButton('月历模式')
         self.left_window_layout.addWidget(self.left_button0, 0, 0, 1, 1)
+        self.left_button0.clicked.connect(self.month_calendar_triggered)
+
+        self.left_button1 = QPushButton('传统模式')
+        self.left_window_layout.addWidget(self.left_button1, 1, 0, 1, 1)
+        self.left_button1.clicked.connect(self.traditional_triggered)
+    
 
     # 填右半部分
     def fill_right(self):
@@ -188,16 +199,6 @@ class MainUI(QMainWindow):
             layout.removeItem(item)
             if item.widget():
                 item.widget().deleteLater()
-
-    '''
-    # 该函数为原 delete_task，仅适用于按钮点击删除，故更名 delete_task_logic
-    def delete_task_logic(self):
-        self.schedule.remove_designated_task(self.sender().parent().task)
-        ## 若是当前详细展示的任务被删除，同时删除详细信息
-        if self.showing_big_widget.task == self.sender().parent().task:
-            self.clear_layout(self.detail_window_layout)
-        self.show_task(None, None)
-    '''
 
     # 更加泛化的 delete_task
     # 其中 trick 参数用于决定是否关联性地删除当前显示的任务
@@ -322,19 +323,6 @@ class MainUI(QMainWindow):
         msgbox.setStyleSheet('''QLabel{min-width:300px; min-height:150px}''')
         msgbox.exec()
 
-    '''
-    def show_task_detail(self):
-        temp_big_task_widget = BridgeTaskBigWIdget.TaskBigWidget(self.sender().parent().task)
-        temp_big_task_widget.ddl_mod_but.clicked.connect(self.mod_logic)
-        temp_big_task_widget.title_mod_but.clicked.connect(self.mod_logic)
-        temp_big_task_widget.content_mod_but.clicked.connect(self.mod_logic)
-        temp_big_task_widget.remark_mod_but.clicked.connect(self.mod_logic)
-        temp_big_task_widget.tag_mod_but.clicked.connect(self.mod_logic)
-        temp_big_task_widget.importance_level_mod_but.clicked.connect(self.mod_logic)
-        self.showing_big_widget = temp_big_task_widget
-        self.detail_window_layout.addWidget(temp_big_task_widget, 0, 0, 30, 6)
-    '''
-
     # (ruilin) 新的任务详细信息的UI，弹出一个框，可以显示也可以修改
     def show_task_settings_dialog(self):
         
@@ -411,98 +399,49 @@ class MainUI(QMainWindow):
         )
 
         if self.generate_task(*temp_args, check_only = True):
-             self.delete_task(tsk)
-             self.generate_task(*temp_args, check_only = False)
-
-        self.dialog.close()
+            self.delete_task(tsk)
+            self.generate_task(*temp_args, check_only = False)
+            self.dialog.close()
 
     # (ruilin) 任务详情对话框点击 cancle 后直接关闭
     def dialog_cancel_func(self):
         self.dialog.close()
 
-    '''
-    # (ruilin) <trigger function> 
-    def mod_logic(self):
+    # <月历模式> 相关函数 =====================================================================
 
-        # (ruilin) 触发的时候： self = MainUI / self.sender() 是QPushButton
-        # (ruilin) self.sender().parent() 是QWidget
-        # (ruilin) self.sender().parent().parent() 是这个大框 Bridge Task Big Widget
+    # (ruilin) 不知道为啥，需要用这个函数来请理 Layout
+    def clear_layout(self, layout):
+        item_list = list(range(layout.count()))
+        item_list.reverse()
+        for i in item_list:
+            item = layout.itemAt(i)
+            layout.removeItem(item)
+            if item.widget():
+                item.widget().deleteLater()
 
+    # (ruilin) 切换到月历模式.
+    # (ruilin) 点击月历模式后，需要请理原来的 layout
+    def month_calendar_triggered(self):
 
-        task = self.sender().parent().parent().task
-        parent = self.sender().parent().parent()
-        # ddl mod
-        if self.sender() == self.showing_big_widget.ddl_mod_but:
-            ddl, ok = QInputDialog.getText(self, '更改DDL', '新DDL', QLineEdit.Normal,
-                                           parent.task.ddl)
-            if ok:
-                if self.generate_task(ddl, task.title, task.content, task.remark,
-                                      task.start_time, get_importance_value(task.importance_level),
-                                      task.tag, check_only=True):
-                    parent.ddl_label.setText('DDL: ' + ddl)
-                    self.delete_task(task, trick=True)
-                    new_task = self.generate_task(ddl, task.title, task.content, task.remark,
-                                       task.start_time, get_importance_value(task.importance_level),
-                                       task.tag, check_only=False)
-                    parent.task = new_task
-        # importance mod
-        if self.sender() == self.showing_big_widget.importance_level_mod_but:
-            importance_level, ok = QInputDialog.getText(self, '更改重要程度', '新重要程度', QLineEdit.Normal)
-            if ok:
-                if self.generate_task(task.ddl, task.title, task.content, task.remark,
-                                      task.start_time, importance_level,
-                                      task.tag, check_only=True):
-                    parent.importance_level_label.setText(str(ImportanceLevel(int(importance_level))))
-                    self.delete_task(task, trick=True)
-                    new_task = self.generate_task(task.ddl, task.title, task.content, task.remark,
-                                       task.start_time, importance_level,
-                                       task.tag, check_only=False)
-                    parent.task = new_task
-        # title mod
-        if self.sender() == self.showing_big_widget.title_mod_but:
-            title, ok = QInputDialog.getText(self, '更改标题', '新标题', QLineEdit.Normal,
-                                           parent.task.title)
-            if ok: # no need to check
-                    parent.title_label.setText(title)
-                    self.delete_task(task, trick=True)
-                    new_task = self.generate_task(task.ddl, title, task.content, task.remark,
-                                       task.start_time, get_importance_value(task.importance_level),
-                                       task.tag, check_only=False)
-                    parent.task = new_task
-        # tag mod
-        if self.sender() == self.showing_big_widget.tag_mod_but:
-            tag, ok = QInputDialog.getText(self, '更改任务标签', '新标签', QLineEdit.Normal,
-                                           parent.task.tag)
-            if ok: # no need to check
-                    parent.tag_label.setText('任务标签: ' + tag)
-                    self.delete_task(task, trick=True)
-                    new_task = self.generate_task(task.ddl, task.title, task.content, task.remark,
-                                       task.start_time, get_importance_value(task.importance_level),
-                                       tag, check_only=False)
-                    parent.task = new_task
-        # content mod
-        if self.sender() == self.showing_big_widget.content_mod_but:
-            content, ok = QInputDialog.getMultiLineText(self, '更改任务内容', '新内容',
-                                           parent.task.content)
-            if ok: # no need to check
-                    parent.content_content.setText('任务内容: \n' + content)
-                    self.delete_task(task, trick=True)
-                    new_task = self.generate_task(task.ddl, task.title, content, task.remark,
-                                       task.start_time, get_importance_value(task.importance_level),
-                                       task.tag, check_only=False)
-                    parent.task = new_task
-        # remark mod
-        if self.sender() == self.showing_big_widget.remark_mod_but:
-            remark, ok = QInputDialog.getMultiLineText(self, '更改任务备注', '新备注',
-                                           parent.task.remark)
-            if ok: # no need to check
-                    parent.remark_content.setText('任务备注: \n' + remark)
-                    self.delete_task(task, trick=True)
-                    new_task = self.generate_task(task.ddl, task.title, task.content, remark,
-                                       task.start_time, get_importance_value(task.importance_level),
-                                       task.tag, check_only=False)
-                    parent.task = new_task
-    '''
+        # (ruilin) 如果 UI 模式已经在月历模式下，不做任何操作
+        if self.current_UI_mode == UI_mode.CALANDAR: return
+        self.current_UI_mode = UI_mode.CALANDAR
+
+        self.clear_layout(self.right_window_layout)
+        self.month_calander = Monthlendar(self.schedule)
+        self.main_window_layout.addWidget(self.month_calander, 0, 1, 30, 16)
+
+    # (ruilin) 切换到传统模式
+    def traditional_triggered(self):
+
+        if self.current_UI_mode == UI_mode.TRADITIONAL: return
+        self.current_UI_mode = UI_mode.TRADITIONAL
+
+        # (ruilin) how to clear this?
+        self.clear_layout(self.month_calander.month_lendar_layout)
+        print('tradition mode clicked')
+        self.main_window_layout.removeWidget(self.month_calander)
+        self.main_window_layout.addWidget(self.right_window, 0, 1, 30, 7)
 
 user_name = 'Administrator_ruilin'
 

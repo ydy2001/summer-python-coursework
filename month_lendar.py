@@ -33,9 +33,9 @@ class Monthlendar(QWidget):
     def __init__(self, schedule : Schedule = None):
         super().__init__()
         self.schedule = schedule    # schedule = [task for task in 用户的所有任务]
-        self.resize(2000, 1500)
-        month_lendar_layout = QGridLayout() # 网格内部通过网格布局来实现
-        self.setLayout(month_lendar_layout)
+        # self.resize(2000, 1500)
+        self.month_lendar_layout = QGridLayout() # 网格内部通过网格布局来实现
+        self.setLayout(self.month_lendar_layout)
 
         # $(ruilin) 默认的年份, 月份为当前时间
         today = datetime.datetime.today()
@@ -47,20 +47,20 @@ class Monthlendar(QWidget):
         self.year_spinbox.setRange(2000, 2100)
         self.year_spinbox.setSingleStep(1)
         self.year_spinbox.setValue(self.current_year)
-        month_lendar_layout.addWidget(self.year_spinbox, 0, 1, 1, 1)
+        self.month_lendar_layout.addWidget(self.year_spinbox, 0, 1, 1, 1)
 
         year_label = QLabel('      选择年份: ')
-        month_lendar_layout.addWidget(year_label, 0, 0, 1, 1)
+        self.month_lendar_layout.addWidget(year_label, 0, 0, 1, 1)
 
         # $(ruilin) 选择月份
         self.month_spinbox = QSpinBox()
         self.month_spinbox.setRange(1, 12)
         self.month_spinbox.setSingleStep(1)
         self.month_spinbox.setValue(self.current_month)
-        month_lendar_layout.addWidget(self.month_spinbox, 0, 3, 1, 1)
+        self.month_lendar_layout.addWidget(self.month_spinbox, 0, 3, 1, 1)
 
         month_label = QLabel('      选择月份: ')
-        month_lendar_layout.addWidget(month_label, 0, 2, 1, 1)
+        self.month_lendar_layout.addWidget(month_label, 0, 2, 1, 1)
 
         # $(ruilin) 年份或者月份微调的时候，信号链接到相应的处理函数
         self.year_spinbox.valueChanged.connect(self.year__month_changed)
@@ -75,13 +75,13 @@ class Monthlendar(QWidget):
 
         # $(ruilin) 添加“星期几”标识
         for i in range(7):
-            month_lendar_layout.addWidget(self.weekday_widgets[i], 1, i, 1, 1)
+            self.month_lendar_layout.addWidget(self.weekday_widgets[i], 1, i, 1, 1)
             weekday_label = QLabel('\n\n\n\n\n        星期' + str(i + 1), self.weekday_widgets[i])
         
         # $(ruilin) 为每一天添加一个对应的按钮，其上面的文字显示任务信息
         for i in range(6):
             for j in range(7):
-                month_lendar_layout.addWidget(self.widgets[7 * i + j], i + 2, j, 1, 1)
+                self.month_lendar_layout.addWidget(self.widgets[7 * i + j], i + 2, j, 1, 1)
                 
         self.flush()
 
@@ -114,10 +114,28 @@ class Monthlendar(QWidget):
         for day in this_month_days:
             # print('day = ', day, ' cur_day = ', cur_day)
             if day.month != self.current_month: continue
-            self.widgets[cur_day].setText(str(day))
+
+            today_ddl_count = 0
+            today_tasks = []
+
+            for tsk in self.schedule.tasks:
+                (yy1, mm1, dd1) = tsk.ddl_year_and_month()
+                if yy1 == day.year and mm1 == day.month and dd1 == day.day:
+                    today_ddl_count += 1
+                    today_tasks.append(tsk)
+
+            today_text = str(day)
+            if today_ddl_count:
+                today_text += '\n 今日有{}件事情截止'.format(today_ddl_count)
+
+                for i in range(min(3, len(today_tasks))):
+                    tsk = today_tasks[i]
+                    today_text += "\n{} : {}".format(i + 1, tsk.title)
+
+            self.widgets[cur_day].setText(today_text)
             cur_day += 1
 
-        
+            
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)

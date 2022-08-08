@@ -71,6 +71,11 @@ class Task:
             'status' : TaskStatus_to_int[self.status]
         }
 
+
+    def ddl_year_and_month(self) :
+        tsk_ddl = time.strptime(self.ddl, "%Y-%m-%d %H:%M")
+        return (tsk_ddl.tm_year, tsk_ddl.tm_mon, tsk_ddl.tm_mday)
+
     # 以下函数暂时还未开始使用
     # Currently not used. ========================================================
     def change_status(self, status):              # 主动指定更新任务状态
