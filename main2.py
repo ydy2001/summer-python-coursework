@@ -39,7 +39,6 @@ class MainUI(QMainWindow):
         ## showing_big_widget 为当前在 detail window 中展示的 TaskBigWidget
         self.showing_big_widget = None
         self.setup_UI()
-        self.setup_input_task_logic()
 
     # 从总体上将主窗口分成左右两个部分
     def set_right_left(self):
@@ -171,6 +170,9 @@ class MainUI(QMainWindow):
 
         # 显示滚动区中的任务内容
         self.show_task(time.strftime("%Y-%m-%d", time.localtime()), False)
+
+        # 在初始化 右半部分窗口的时候，将逻辑链接到槽中
+        self.setup_input_task_logic()
 
     def setup_UI(self):
         self.setWindowTitle('AweSomeSchedule')
