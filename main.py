@@ -1,7 +1,7 @@
 # 图形化界面的入口
 # (Blame) Ruilin Who
 # CoAuthor: Ydy --- ydy2001@buaa.edu.cn
-
+import os.path
 from multiprocessing.sharedctypes import Value
 import sys
 import time
@@ -11,6 +11,7 @@ import json
 from Core import CoreTask, CoreSchedule
 from Core.CoreEnum import ImportanceLevel, get_importance_value
 from Bridge import BridgeTaskSmallWidget, BridgeTaskBigWIdget
+from Core.CoreArgorithm import *
 from PyQt5.QtWidgets import (
     QApplication, 
     QWidget, 
@@ -23,12 +24,15 @@ from PyQt5.QtWidgets import (
     QScrollArea,
     QMessageBox,    # 消息框
     QInputDialog,
+    QSpinBox,
 )
 from PyQt5.QtWidgets import (
     QGridLayout,
     QVBoxLayout,
 )
 from PyQt5.QtCore import Qt
+import datetime
+import calendar
 
 class MainUI(QMainWindow):
 
@@ -38,8 +42,13 @@ class MainUI(QMainWindow):
         self.schedule = CoreSchedule.Schedule()
         ## showing_big_widget 为当前在 detail window 中展示的 TaskBigWidget
         self.showing_big_widget = None
+        ## 日期控制
+        today = datetime.datetime.today()
+        self.current_year = today.year
+        self.current_month = today.month
+        self.current_day = today.day
         ### 新增 current_user, 用于指示当前用户
-        self.current_user = None
+        self.current_user = 'default user'
         self.setup_UI()
         self.setup_input_task_logic()
 
@@ -58,8 +67,8 @@ class MainUI(QMainWindow):
         self.right_window_layout = QGridLayout()
         self.right_window.setLayout(self.right_window_layout)
         # 合并左右窗口至主窗口
-        self.main_window_layout.addWidget(self.left_window, 0, 0, 30, 1)
-        self.main_window_layout.addWidget(self.right_window, 0, 1, 30, 7)
+        self.main_window_layout.addWidget(self.left_window, 0, 0, 30, 2)
+        self.main_window_layout.addWidget(self.right_window, 0, 2, 30, 7)
         # 设置主窗口为最终显示窗口
         self.setCentralWidget(self.main_window)
         ## 设置一个单独的详细信息窗口
@@ -70,8 +79,151 @@ class MainUI(QMainWindow):
 
     # 填左半部分
     def fill_left(self):
+        # 用户相关
+        self.user_label = QLabel('当前用户: ' + self.current_user)
+        self.change_user_but = QPushButton('切换用户')
+        self.left_window_layout.addWidget(self.user_label, 0, 0, 1, 2)
+        self.left_window_layout.addWidget(self.change_user_but, 1, 0, 1, 1)
+
+        # 月历模式入口
         self.left_button0 = QPushButton("月历模式")
-        self.left_window_layout.addWidget(self.left_button0, 0, 0, 1, 1)
+        self.left_window_layout.addWidget(self.left_button0, 2, 0, 1, 1)
+
+        # 排序功能
+        self.arrange_label = QLabel('整理日程')
+        self.arrange_ddl_but = QPushButton('按DDL整理')
+        self.arrange_tag_but = QPushButton('按任务标签整理')
+        self.arrange_title_but = QPushButton('按标题整理')
+        self.arrange_importance_but = QPushButton('按重要程度整理')
+        ## 排序功能的小窗口
+        self.arrange_window = QWidget()
+        self.arrange_layout = QGridLayout()
+        self.arrange_window.setLayout(self.arrange_layout)
+        self.arrange_layout.addWidget(self.arrange_label, 0, 0, 1, 1)
+        self.arrange_layout.addWidget(self.arrange_ddl_but, 1, 0, 1, 1)
+        self.arrange_layout.addWidget(self.arrange_tag_but, 1, 1, 1, 1)
+        self.arrange_layout.addWidget(self.arrange_title_but, 2, 0, 1, 1)
+        self.arrange_layout.addWidget(self.arrange_importance_but, 2, 1, 1, 1)
+        self.left_window_layout.addWidget(self.arrange_window, 3, 0, 3, 2)
+
+        # 日期控制
+        self.time_label = QLabel('当前选择日期: ' + str(self.current_year) + '/'
+                                                + str(self.current_month) + '/'
+                                                + str(self.current_day))
+        self.time_change_label = QLabel('日期选择')
+        self.left_window_layout.addWidget(self.time_label, 6, 0, 1, 2)
+        self.left_window_layout.addWidget(self.time_change_label, 7, 0, 1, 1)
+        ################################################
+            ############################################
+        self.time_change_window = QWidget()
+        self.time_change_layout = QGridLayout()
+        self.time_change_window.setLayout(self.time_change_layout)
+        # $(ruilin) 选择年份
+        self.year_spinbox = QSpinBox()
+        self.year_spinbox.setRange(2000, 2100)
+        self.year_spinbox.setSingleStep(1)
+        self.year_spinbox.setValue(self.current_year)
+        self.time_change_layout.addWidget(self.year_spinbox, 0, 1, 1, 1)
+
+        year_label = QLabel('选择年份: ')
+        self.time_change_layout.addWidget(year_label, 0, 0, 1, 1)
+
+        # $(ruilin) 选择月份
+        self.month_spinbox = QSpinBox()
+        self.month_spinbox.setRange(1, 12)
+        self.month_spinbox.setSingleStep(1)
+        self.month_spinbox.setValue(self.current_month)
+        self.time_change_layout.addWidget(self.month_spinbox, 1, 1, 1, 1)
+
+        month_label = QLabel('选择月份: ')
+        self.time_change_layout.addWidget(month_label, 1, 0, 1, 1)
+
+        # $(ruilin) 年份或者月份微调的时候，信号链接到相应的处理函数
+        self.year_spinbox.valueChanged.connect(self.year__month_changed)
+        self.month_spinbox.valueChanged.connect(self.year__month_changed)
+        self.left_window_layout.addWidget(self.time_change_window, 9, 0, 2, 2)
+            #############################################
+        #################################################
+        # 让他们创造31日，但不能完全给予
+        self.widgets = [QPushButton() for i in range(31)]  # 创建 5行7列的小部件
+        for i in range(31):
+            self.widgets[i].setText(str(i + 1))
+            self.left_window_layout.addWidget(self.widgets[i], (11 + i//2), i & 1, 1, 1)
+
+        self.set_left_logic()
+
+    def set_left_logic(self):
+        # 排序
+        self.arrange_ddl_but.clicked.connect(self.arrange)
+        self.arrange_importance_but.clicked.connect(self.arrange)
+        self.arrange_title_but.clicked.connect(self.arrange)
+        self.arrange_tag_but.clicked.connect(self.arrange)
+        # 切换用户, 在login.py中实现
+        pass
+        # 日期切换
+        for i in range(31):
+            self.widgets[i].clicked.connect(self.set_date)
+
+    def set_date(self):
+        for i in range(31):
+            if self.sender() == self.widgets[i]:
+                self.current_day = i + 1
+                break
+        path = '.as/' + self.current_user + '/' + str(self.current_year) \
+               + '/' + str(self.current_month) \
+               + '/' + str(self.current_day)
+        dir_path = '.as/' + self.current_user + '/' + str(self.current_year) \
+                   + '/' + str(self.current_month)
+        if not os.path.exists(dir_path):
+            os.makedirs(dir_path)
+        if not os.path.exists(path):
+            temp = open(path, 'w')
+            temp.close()
+            self.schedule = CoreSchedule.Schedule()
+        else:
+            with open(path, 'r') as f:
+                self.schedule = CoreSchedule.load_schedule_from_list(json.load(f))
+        self.time_label.setText('当前选择日期: ' + str(self.current_year) + '/'
+                                                + str(self.current_month) + '/'
+                                                + str(self.current_day))
+        self.show_task()
+
+
+    def arrange(self):
+        if self.sender() == self.arrange_ddl_but:
+            self.show_task(func=cmp_by_ddl)
+        elif self.sender() == self.arrange_importance_but:
+            self.show_task(func=cmp_by_importance)
+        elif self.sender() == self.arrange_tag_but:
+            self.show_task(func=cmp_by_tag)
+        elif self.sender() == self.arrange_title_but:
+            self.show_task(func=cmp_by_title)
+
+    def year__month_changed(self):
+        self.current_year = int(self.year_spinbox.value())
+        self.current_month = int(self.month_spinbox.value())
+        self.flush()
+
+    # $(ruilin) 将按钮及其对应的信息刷新
+    ## 刷新
+    def flush(self):
+        for i in range(31):
+            self.widgets[i].setEnabled(True)
+        if self.current_month == 2:
+            if not ((self.current_year % 4 == 0 and self.current_year % 100 != 0) \
+                or self.current_year % 400 == 0):
+                self.widgets[27].setDisabled(True)
+            self.widgets[28].setDisabled(True)
+            self.widgets[29].setDisabled(True)
+            self.widgets[30].setDisabled(True)
+        elif self.current_month == 1 or self.current_month == 3 or \
+             self.current_month == 5 or self.current_month == 7 or \
+             self.current_month == 8 or self.current_month == 10 or \
+             self.current_month == 12:
+            pass
+        else:
+            self.widgets[30].setDisabled(True)
+
 
     # 填右半部分
     def fill_right(self):
@@ -156,7 +308,7 @@ class MainUI(QMainWindow):
         self.right_window_layout.addWidget(self.task_list_scroll, 10, 0, 20, 7)
 
         # 显示滚动区中的任务内容
-        self.show_task(time.strftime("%Y-%m-%d", time.localtime()), False)
+        self.show_task()
 
     def setup_UI(self):
         self.setWindowTitle('AweSomeSchedule')
@@ -196,7 +348,7 @@ class MainUI(QMainWindow):
         ## 若是当前详细展示的任务被删除，同时删除详细信息
         if self.showing_big_widget.task == self.sender().parent().task:
             self.clear_layout(self.detail_window_layout)
-        self.show_task(None, None)
+        self.show_task()
 
     # 更加泛化的 delete_task
     # 其中 trick 参数用于决定是否关联性地删除当前显示的任务
@@ -205,12 +357,23 @@ class MainUI(QMainWindow):
         if trick == False:
             if self.showing_big_widget.task == task:
                 self.clear_layout(self.detail_window_layout)
-        self.show_task(None, None)
+        self.show_task()
 
     # 显示某用户某一天的日程，当前版本date, user参数尚未被使用
-    def show_task(self, date, user, store=True):
+    def show_task(self, date=None, user=None, store=True, func=cmp_by_ddl):
+        path = '.as/' + self.current_user + '/' + str(self.current_year) \
+               + '/' + str(self.current_month) \
+               + '/' + str(self.current_day)
+        dir_path = '.as/' + self.current_user + '/' + str(self.current_year) \
+                   + '/' + str(self.current_month)
+        if not os.path.exists(dir_path):
+            os.makedirs(dir_path)
+        if not os.path.exists(path):
+            temp = open(path, 'w')
+            temp.close()
+            self.schedule = CoreSchedule.Schedule()
         # 排序
-        self.schedule.sort_by_ddl()
+        self.schedule.sort_task(func)
         # 清空当前 task_list_window 中的对象
         self.clear_layout(self.right_task_list_window_layout)
         #####################################
@@ -226,8 +389,8 @@ class MainUI(QMainWindow):
         
         # $(ruilin) 每次调用 show_task 的时候，都会重新刷新本地数据
         if store:
-            with open(user_name + '_info', 'w') as f:
-                print('Dict = ', self.schedule.to_dict())
+            with open(path, 'w') as f:
+                #print('Dict = ', self.schedule.to_dict())
                 json.dump(self.schedule.to_dict(), f)
 
     def generate_task(self, _ddl, _title, _content, _remark, _start_time, _importance_level, _tag,
@@ -291,7 +454,7 @@ class MainUI(QMainWindow):
             # $(ruilin) 将 task 添加到 self.schedule
             task = CoreTask.Task(ddl, title, content, remark, start_time, importance_level, tag)
             self.schedule.add_task(task = task)
-            self.show_task(False, False) # date, user 参数暂时无用
+            self.show_task() # date, user 参数暂时无用
             return task
         else:
             return True
@@ -315,6 +478,7 @@ class MainUI(QMainWindow):
         temp_big_task_widget.remark_mod_but.clicked.connect(self.mod_logic)
         temp_big_task_widget.tag_mod_but.clicked.connect(self.mod_logic)
         temp_big_task_widget.importance_level_mod_but.clicked.connect(self.mod_logic)
+        self.clear_layout(self.detail_window_layout)
         self.showing_big_widget = temp_big_task_widget
         self.detail_window_layout.addWidget(temp_big_task_widget, 0, 0, 30, 6)
 

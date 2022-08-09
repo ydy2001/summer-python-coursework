@@ -117,16 +117,18 @@ class Task:
 
 
 # $(ruilin) 通过我们的协议，来载入一个用 json 存放的 Task
-def load_task_from_dict(dic : dict) -> Task:
+def load_task_from_dict(dic: dict) -> Task:
+    il = dic['importance_level']
+    st = dic['status']
     return Task(
         ddl = dic['ddl'],
         title = dic['title'],
         content = dic['content'],
         remark = dic['remark'],
         start_time = dic['start_time'],
-        importance_level = Int_to_importance(dic['importance_level']),
+        importance_level = ImportanceLevel(il),
         tag = dic['tag'],
-        status = Int_to_TaskStatus(dic['status'])
+        status = TaskStatus(st),
     )
 
 
