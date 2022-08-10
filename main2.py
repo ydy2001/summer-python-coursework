@@ -63,14 +63,25 @@ class MainUI(QMainWindow):
         # (ruilin) 默认时 UI 为传统模式
         self.current_UI_mode = UI_mode.TRADITIONAL
 
+        # (ruilin) 
+        # 用户相关
+        self.change_user_but = QPushButton('切换用户')
+        self.left_window_layout.addWidget(self.change_user_but, 0, 0, 1, 1)
+
+
         self.left_button0 = QPushButton('月历模式')
-        self.left_window_layout.addWidget(self.left_button0, 0, 0, 1, 1)
+        self.left_window_layout.addWidget(self.left_button0, 1, 0, 1, 1)
         self.left_button0.clicked.connect(self.month_calendar_triggered)
 
         self.left_button1 = QPushButton('传统模式')
-        self.left_window_layout.addWidget(self.left_button1, 1, 0, 1, 1)
+        self.left_window_layout.addWidget(self.left_button1, 2, 0, 1, 1)
         self.left_button1.clicked.connect(self.traditional_triggered)
-    
+
+        self.whatever_label = QLabel("")
+        self.left_window_layout.addWidget(self.whatever_label, 3, 0, 10 , 1)
+
+        # (ruilin) self.set_left_logic
+        
 
     # 填右半部分
     # (ruilin) fill_right 可能有歧义

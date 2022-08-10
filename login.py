@@ -5,7 +5,7 @@
 from multiprocessing.sharedctypes import Value
 import sys
 import json
-from main import MainUI
+from main3 import MainUI
 from register import RegisterUI
 
 # from nbformat import write
