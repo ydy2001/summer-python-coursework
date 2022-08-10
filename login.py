@@ -35,6 +35,8 @@ class LoginUI(QMainWindow):
 
     def __init__(self):
         super().__init__()
+        if not os.path.exists('.as'):
+            os.mkdir('.as')
         self.setup_UI()
         self.setup_logic()
 
@@ -102,15 +104,9 @@ class LoginUI(QMainWindow):
             self.show_failure_msg('登陆失败', '账号或密码错误')
             return
         main_ui.current_user = account
-        # main_ui.user_label.setText('当前用户: ' + main_ui.current_user)
+        main_ui.user_label.setText('当前用户: ' + main_ui.current_user)
         # 
-        path = '.as/' + main_ui.current_user + '/' + str(main_ui.current_year) \
-               + '/' + str(main_ui.current_month) \
-               + '/' + str(main_ui.current_day)
-        dir_path = '.as/' + main_ui.current_user + '/' + str(main_ui.current_year) \
-                   + '/' + str(main_ui.current_month)
-        if not os.path.exists(dir_path):
-            os.makedirs(dir_path)
+        path = '.as/' + main_ui.current_user
         if not os.path.exists(path):
             temp = open(path, 'w')
             temp.close()
@@ -120,7 +116,7 @@ class LoginUI(QMainWindow):
                 main_ui.schedule = CoreSchedule.load_schedule_from_list(json.load(f))
         #
 
-        main_ui.clear_layout(main_ui.detail_window_layout)
+        main_ui.clear_layout(main_ui.right_task_list_window_layout)
         main_ui.show_task()
         main_ui.show()
         self.close()

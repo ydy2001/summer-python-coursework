@@ -2,7 +2,7 @@
 # (Blame) Ruilin Who
 # CoAuthor: Ydy --- ydy2001@buaa.edu.cn
 
-import sys
+import os
 import time
 import json
 
@@ -37,8 +37,8 @@ class MainUI(QMainWindow):
 
     def __init__(self):
         super().__init__()
-        # 由于beta版限制，在此声明 self.schedule
         self.schedule = CoreSchedule.Schedule()
+        self.current_user = 'default user'
         ## showing_big_widget 为当前在 detail window 中展示的 TaskBigWidget
         self.showing_big_widget = None
         self.setup_UI()
@@ -68,16 +68,18 @@ class MainUI(QMainWindow):
 
         # (ruilin) 
         # 用户相关
+        self.user_label = QLabel('当前用户: ' + self.current_user)
+        self.left_window_layout.addWidget(self.user_label, 0, 0, 1, 2)
         self.change_user_but = QPushButton('切换用户')
-        self.left_window_layout.addWidget(self.change_user_but, 0, 0, 1, 1)
+        self.left_window_layout.addWidget(self.change_user_but, 1, 0, 1, 2)
 
 
         self.left_button0 = QPushButton('月历模式')
-        self.left_window_layout.addWidget(self.left_button0, 1, 0, 1, 1)
+        self.left_window_layout.addWidget(self.left_button0, 2, 0, 1, 1)
         self.left_button0.clicked.connect(self.month_calendar_triggered)
 
         self.left_button1 = QPushButton('传统模式')
-        self.left_window_layout.addWidget(self.left_button1, 2, 0, 1, 1)
+        self.left_window_layout.addWidget(self.left_button1, 2, 1, 1, 1)
         self.left_button1.clicked.connect(self.traditional_triggered)
 
         self.whatever_label = QLabel("")
@@ -103,8 +105,9 @@ class MainUI(QMainWindow):
         # 合并右窗口至主窗口
         self.main_window_layout.addWidget(self.right_window, 0, 1, 30, 16)
 
+        self.set_right_manipulation_window()  # (ruilin) 关于排序的小器件
         self.set_right_input_window() # 综合了输入信息的小窗口
-        self.set_right_manipulation_window() # (ruilin) 关于排序的小器件
+
 
     # 设置用于新建任务的小窗口
     def set_right_input_window(self):
@@ -184,7 +187,8 @@ class MainUI(QMainWindow):
         self.right_window_layout.addWidget(self.task_list_scroll, 0, 6, 30, 10)
 
         # 显示滚动区中的任务内容
-        self.show_task(time.strftime("%Y-%m-%d", time.localtime()), False)
+        self.show_task(begindate=self.begin_dateedit.date(),
+                       enddate=self.end_dateedit.date())
 
         # 在初始化 右半部分窗口的时候，将逻辑链接到槽中
         self.setup_input_task_logic()
@@ -261,13 +265,17 @@ class MainUI(QMainWindow):
 
     def arrange_triggered(self):
         if self.sender() == self.arrange_ddl_but:
-            self.show_task(func=cmp_by_ddl)
+            self.show_task(func=cmp_by_ddl, begindate=self.begin_dateedit.date(),
+                           enddate=self.end_dateedit.date())
         elif self.sender() == self.arrange_importance_but:
-            self.show_task(func=cmp_by_importance)
+            self.show_task(func=cmp_by_importance, begindate=self.begin_dateedit.date(),
+                           enddate=self.end_dateedit.date())
         elif self.sender() == self.arrange_tag_but:
-            self.show_task(func=cmp_by_tag)
+            self.show_task(func=cmp_by_tag, begindate=self.begin_dateedit.date(),
+                           enddate=self.end_dateedit.date())
         elif self.sender() == self.arrange_title_but:
-            self.show_task(func=cmp_by_title)
+            self.show_task(func=cmp_by_title, begindate=self.begin_dateedit.date(),
+                           enddate=self.end_dateedit.date())
 
     def datechange_triggered(self):
         begintime = self.begin_dateedit.date()
@@ -287,7 +295,8 @@ class MainUI(QMainWindow):
     # 其中 trick 参数用于决定是否关联性地删除当前显示的任务
     def delete_task(self, task: CoreTask.Task):
         self.schedule.remove_designated_task(task)
-        self.show_task(None, None)
+        self.show_task(begindate=self.begin_dateedit.date(),
+                       enddate=self.end_dateedit.date())
     
     # (ruilin) 新的点击删除按钮的槽函数
     def trigger_delete_task(self):
@@ -300,7 +309,7 @@ class MainUI(QMainWindow):
                   begindate = None, 
                   enddate = None):
         # 排序
-        self.schedule.sort_by_ddl()
+        self.schedule.sort_task(cmp_func=func)
         # 清空当前 task_list_window 中的对象
         self.clear_layout(self.right_task_list_window_layout)
 
@@ -324,7 +333,12 @@ class MainUI(QMainWindow):
         
         # (ruilin) 每次调用 show_task 的时候，都会重新刷新本地数据
         if store:
-            with open(user_name + '_info', 'w') as f:
+            # make sure user file exists
+            path = '.as/' + self.current_user
+            if not os.path.exists(path):
+                temp = open(path, 'w')
+                temp.close()
+            with open(path, 'w') as f:
                 # print('Dict = ', self.schedule.to_dict())
                 json.dump(self.schedule.to_dict(), f)
 
@@ -397,7 +411,8 @@ class MainUI(QMainWindow):
             # (ruilin) 将 task 添加到 self.schedule
             task = CoreTask.Task(ddl, title, content, remark, start_time, importance_level, tag)
             self.schedule.add_task(task = task)
-            self.show_task(False, False) # date, user 参数暂时无用
+            self.show_task(begindate=self.begin_dateedit.date(),
+                           enddate=self.end_dateedit.date())
             return task
         else:
             return True

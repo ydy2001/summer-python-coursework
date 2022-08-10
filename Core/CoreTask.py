@@ -129,9 +129,9 @@ def load_task_from_dict(dic : dict) -> Task:
         content = dic['content'],
         remark = dic['remark'],
         start_time = dic['start_time'],
-        importance_level = Int_to_importance(dic['importance_level']),
+        importance_level = ImportanceLevel(dic['importance_level']),
         tag = dic['tag'],
-        status = Int_to_TaskStatus(dic['status'])
+        status = TaskStatus(dic['status'])
     )
 
 
