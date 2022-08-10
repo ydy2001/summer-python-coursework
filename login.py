@@ -1,14 +1,15 @@
 # 图形化界面的入口
 # (Blame) Ruilin Who
 # CoAuthor: Ydy --- ydy2001@buaa.edu.cn
-
+import os.path
 from multiprocessing.sharedctypes import Value
 import sys
 import json
-from main3 import MainUI
+from main2 import MainUI
 from register import RegisterUI
 
 # from nbformat import write
+from Core import CoreSchedule
 from PyQt5.QtWidgets import (
     QApplication,
     QWidget,
@@ -84,7 +85,10 @@ class LoginUI(QMainWindow):
     def confirm(self):
         account = self.account_line.text()
         passwd = self.passwd_line.text()
-        f = open('accounts', 'r')
+        if not os.path.exists('.as/accounts'):
+            temp = open('.as/accounts', 'w')
+            temp.close()
+        f = open('.as/accounts', 'r')
         strs = f.readlines()
         i = 0
         check = False
@@ -97,9 +101,26 @@ class LoginUI(QMainWindow):
         if check == False:
             self.show_failure_msg('登陆失败', '账号或密码错误')
             return
+        main_ui.current_user = account
+        main_ui.user_label.setText('当前用户: ' + main_ui.current_user)
+        path = '.as/' + main_ui.current_user + '/' + str(main_ui.current_year) \
+               + '/' + str(main_ui.current_month) \
+               + '/' + str(main_ui.current_day)
+        dir_path = '.as/' + main_ui.current_user + '/' + str(main_ui.current_year) \
+                   + '/' + str(main_ui.current_month)
+        if not os.path.exists(dir_path):
+            os.makedirs(dir_path)
+        if not os.path.exists(path):
+            temp = open(path, 'w')
+            temp.close()
+            main_ui.schedule = CoreSchedule.Schedule()
+        else:
+            with open(path, 'r') as f:
+                main_ui.schedule = CoreSchedule.load_schedule_from_list(json.load(f))
+        main_ui.clear_layout(main_ui.detail_window_layout)
+        main_ui.show_task()
         main_ui.show()
         self.close()
-        main_ui.current_user = account
 
     def register(self):
         register_ui.show()
@@ -115,10 +136,15 @@ class LoginUI(QMainWindow):
         msgbox.setStyleSheet('''QLabel{min-width:300px; min-height:150px}''')
         msgbox.exec()
 
+    def change(self):
+        main_ui.close()
+        self.show()
+
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     login_ui = LoginUI()
-    login_ui.show()
     main_ui = MainUI()
+    main_ui.change_user_but.clicked.connect(login_ui.change)
+    login_ui.show()
     register_ui = RegisterUI()
     sys.exit(app.exec_())
