@@ -93,7 +93,7 @@ class RegisterUI(QMainWindow):
         if passwd_ != passwd:
             self.show_failure_msg('注册失败', '两次输入密码不一致！')
             return
-        f = open('accounts', 'a')
+        f = open('.as/accounts', 'a')
         f.write(account + '\n')
         f.write(passwd + '\n')
         self.close()

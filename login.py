@@ -102,7 +102,8 @@ class LoginUI(QMainWindow):
             self.show_failure_msg('登陆失败', '账号或密码错误')
             return
         main_ui.current_user = account
-        main_ui.user_label.setText('当前用户: ' + main_ui.current_user)
+        # main_ui.user_label.setText('当前用户: ' + main_ui.current_user)
+        # 
         path = '.as/' + main_ui.current_user + '/' + str(main_ui.current_year) \
                + '/' + str(main_ui.current_month) \
                + '/' + str(main_ui.current_day)
@@ -117,6 +118,8 @@ class LoginUI(QMainWindow):
         else:
             with open(path, 'r') as f:
                 main_ui.schedule = CoreSchedule.load_schedule_from_list(json.load(f))
+        #
+
         main_ui.clear_layout(main_ui.detail_window_layout)
         main_ui.show_task()
         main_ui.show()

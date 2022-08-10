@@ -360,7 +360,11 @@ class MainUI(QMainWindow):
         self.show_task()
 
     # 显示某用户某一天的日程，当前版本date, user参数尚未被使用
-    def show_task(self, date=None, user=None, store=True, func=cmp_by_ddl):
+    def show_task(self, 
+                  store = True,
+                  func = cmp_by_ddl, 
+                  begindate = None, 
+                  enddate = None):
         path = '.as/' + self.current_user + '/' + str(self.current_year) \
                + '/' + str(self.current_month) \
                + '/' + str(self.current_day)

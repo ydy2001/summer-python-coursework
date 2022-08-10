@@ -10,6 +10,7 @@ import json
 from month_lendar import *
 from Core import CoreTask, CoreSchedule
 from Core.CoreEnum import *
+from Core.CoreArgorithm import *
 from Bridge import BridgeTaskSmallWidget, BridgeTaskBigWIdget
 from PyQt5.QtWidgets import (
     QApplication, 
@@ -27,8 +28,10 @@ from PyQt5.QtWidgets import (
     QSizePolicy,
     QGridLayout,
     QVBoxLayout,
+    QDateEdit,
 )
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QDate
+from PyQt5.QtGui import QPalette, QColor
 
 class MainUI(QMainWindow):
 
@@ -80,6 +83,11 @@ class MainUI(QMainWindow):
         self.whatever_label = QLabel("")
         self.left_window_layout.addWidget(self.whatever_label, 3, 0, 10 , 1)
 
+        # (ruilin) 给控制栏设置灰色背景以进行强调
+        plt = self.left_window.palette()
+        plt.setColor(QPalette.Background, QColor(224, 224, 224))
+        self.left_window.setPalette(plt)
+        self.left_window.setAutoFillBackground(True)
         # (ruilin) self.set_left_logic
         
 
@@ -94,13 +102,9 @@ class MainUI(QMainWindow):
         self.right_window.setLayout(self.right_window_layout)
         # 合并右窗口至主窗口
         self.main_window_layout.addWidget(self.right_window, 0, 1, 30, 7)
-        ## 设置一个单独的详细信息窗口
-        self.detail_window = QWidget()
-        self.detail_window_layout = QGridLayout()
-        self.detail_window.setLayout(self.detail_window_layout)
-        self.main_window_layout.addWidget(self.detail_window, 0, 10, 30, 6)
 
         self.set_right_input_window() # 综合了输入信息的小窗口
+        self.set_right_manipulation_window() # (ruilin) 关于排序的小器件
 
     # 设置用于新建任务的小窗口
     def set_right_input_window(self):
@@ -165,9 +169,9 @@ class MainUI(QMainWindow):
         
         # 设置确认新建任务按钮
         self.right_input_button = QPushButton("确认新建任务")
-        self.right_input_button.setFixedSize(200, 220)
+        self.right_input_button.setMinimumHeight(100)
         self.right_window_layout.addWidget(self.right_input_button,
-                                                 0, 6, 5, 1)
+                                                 10, 1, 2, 5)
         
         # (ruilin) 以下是原来的函数 set_right_task_list 中的内容
         self.right_task_list_window = QWidget()
@@ -177,7 +181,7 @@ class MainUI(QMainWindow):
         self.task_list_scroll = QScrollArea(self.right_window)
         self.task_list_scroll.setWidget(self.right_task_list_window)
         self.task_list_scroll.setWidgetResizable(True)
-        self.right_window_layout.addWidget(self.task_list_scroll, 10, 0, 20, 7)
+        self.right_window_layout.addWidget(self.task_list_scroll, 0, 6, 30, 10)
 
         # 显示滚动区中的任务内容
         self.show_task(time.strftime("%Y-%m-%d", time.localtime()), False)
@@ -185,9 +189,56 @@ class MainUI(QMainWindow):
         # 在初始化 右半部分窗口的时候，将逻辑链接到槽中
         self.setup_input_task_logic()
 
+
+    def set_right_manipulation_window(self):
+
+        # 排序功能
+        self.arrange_label = QLabel('<整理日程>')
+        self.right_window_layout.addWidget(self.arrange_label, 12, 0, 2, 1)
+
+        policy = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.arrange_ddl_but = QPushButton('按DDL整理')
+        self.arrange_ddl_but.setSizePolicy(policy)
+        self.arrange_tag_but = QPushButton('按任务标签整理')
+        self.arrange_tag_but.setSizePolicy(policy)
+        self.arrange_title_but = QPushButton('按标题整理')
+        self.arrange_title_but.setSizePolicy(policy)
+        self.arrange_importance_but = QPushButton('按重要程度整理')
+        self.arrange_importance_but.setSizePolicy(policy)
+        ## 排序功能的小窗口
+        self.arrange_window = QWidget()
+        self.arrange_layout = QGridLayout()
+    
+        self.arrange_window.setLayout(self.arrange_layout)
+        self.arrange_layout.addWidget(self.arrange_ddl_but, 0, 0, 1, 1)
+        self.arrange_layout.addWidget(self.arrange_tag_but, 0, 1, 1, 1)
+        self.arrange_layout.addWidget(self.arrange_title_but, 1, 0, 1, 1)
+        self.arrange_layout.addWidget(self.arrange_importance_but, 1, 1, 1, 1)
+        self.right_window_layout.addWidget(self.arrange_window, 12, 1, 3, 5)
+
+        # (ruilin) set_arrange_logic
+        self.arrange_ddl_but.clicked.connect(self.arrange_triggered)
+        self.arrange_importance_but.clicked.connect(self.arrange_triggered)
+        self.arrange_title_but.clicked.connect(self.arrange_triggered)
+        self.arrange_tag_but.clicked.connect(self.arrange_triggered)
+
+        # (ruilin) 以下使用日历对话框器件
+        self.begin_dateedit = QDateEdit(QDate.currentDate())
+        self.begin_dateedit.setCalendarPopup(True)
+        self.begin_dateedit.setDisplayFormat('开始: yyyy-MM-dd')
+        self.arrange_layout.addWidget(self.begin_dateedit, 2, 0, 1, 1)
+
+        self.end_dateedit = QDateEdit(QDate(2077, 12, 31))
+        self.end_dateedit.setCalendarPopup(True)
+        self.end_dateedit.setDisplayFormat('结束: yyyy-MM-dd')
+        self.arrange_layout.addWidget(self.end_dateedit, 2, 1, 1, 1)
+
+        self.begin_dateedit.dateChanged.connect(self.datechange_triggered)
+        self.end_dateedit.dateChanged.connect(self.datechange_triggered)
+
     def setup_UI(self):
         self.setWindowTitle('AweSomeSchedule')
-        self.resize(2000, 1500)
+        self.resize(2400, 1500)
         self.set_right_left()   # (ruilin) 将主界面分为 [控制按钮|工作面板] 两部分
         self.fill_left()        # (ruilin) 初始化控制按钮
         self.fill_right()       # (ruilin) 初始化一开始的添加界面
@@ -207,6 +258,21 @@ class MainUI(QMainWindow):
                            self.tag_input_line.text())
 
     # <关于展示任务>==========================================================================
+
+    def arrange_triggered(self):
+        if self.sender() == self.arrange_ddl_but:
+            self.show_task(func=cmp_by_ddl)
+        elif self.sender() == self.arrange_importance_but:
+            self.show_task(func=cmp_by_importance)
+        elif self.sender() == self.arrange_tag_but:
+            self.show_task(func=cmp_by_tag)
+        elif self.sender() == self.arrange_title_but:
+            self.show_task(func=cmp_by_title)
+
+    def datechange_triggered(self):
+        begintime = self.begin_dateedit.date()
+        endtime = self.end_dateedit.date()
+        self.show_task(begindate = begintime, enddate = endtime)
 
     def clear_layout(self, layout):
         item_list = list(range(layout.count()))
@@ -228,7 +294,11 @@ class MainUI(QMainWindow):
         self.delete_task(self.sender().parent().task)
 
     # 显示某用户某一天的日程，当前版本date, user参数尚未被使用
-    def show_task(self, date, user, store=True):
+    def show_task(self, 
+                  store = True,
+                  func = cmp_by_ddl, 
+                  begindate = None, 
+                  enddate = None):
         # 排序
         self.schedule.sort_by_ddl()
         # 清空当前 task_list_window 中的对象
@@ -236,6 +306,11 @@ class MainUI(QMainWindow):
 
         # (ruilin) 将 schedule 中的每个 Task 使用一个Widget进行展示
         for _ in self.schedule.tasks:
+
+            if begindate and enddate:
+                tskdate = QDate(*_.ddl_year_and_month())
+                if tskdate < begindate or tskdate > enddate: continue
+
             temp = BridgeTaskSmallWidget.TaskSmallWidget(_)
             temp.del_but.clicked.connect(self.trigger_delete_task)
             temp.detail_but.clicked.connect(self.show_task_settings_dialog)
