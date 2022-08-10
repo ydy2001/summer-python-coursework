@@ -101,7 +101,7 @@ class MainUI(QMainWindow):
         self.right_window_layout = QGridLayout()
         self.right_window.setLayout(self.right_window_layout)
         # 合并右窗口至主窗口
-        self.main_window_layout.addWidget(self.right_window, 0, 1, 30, 7)
+        self.main_window_layout.addWidget(self.right_window, 0, 1, 30, 16)
 
         self.set_right_input_window() # 综合了输入信息的小窗口
         self.set_right_manipulation_window() # (ruilin) 关于排序的小器件
