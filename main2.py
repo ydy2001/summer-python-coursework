@@ -124,7 +124,7 @@ class MainUI(QMainWindow):
         # ddl
         self.ddl_input_label = QLabel('截止时间: ')
         self.ddl_input_line = QLineEdit()
-        self.ddl_input_line.setPlaceholderText('请输入截止时间，格式如 2022-01-01 23:59，默认为无截止时间')
+        self.ddl_input_line.setPlaceholderText('请输入截止时间，格式如 2022-01-01 23:59，默认为2077-12-31 23:59')
         self.right_window_layout.addWidget(self.ddl_input_label,
                                                  1, 0, 1, 1)
         self.right_window_layout.addWidget(self.ddl_input_line,
@@ -325,6 +325,24 @@ class MainUI(QMainWindow):
             self.show_task(begindate=self.begin_dateedit.date(),
                        enddate=self.end_dateedit.date())
 
+    def normal_task_complete(self):
+        completed_task = self.sender().parent().task
+        path = '.as/' + self.current_user + '_history'
+        if not os.path.exists(path):
+            temp = open(path, 'w')
+            history_schedule = CoreSchedule.Schedule()
+            history_schedule.add_task(completed_task)
+            json.dump(history_schedule.to_dict(), temp)
+            temp.close()
+        else:
+            f = open(path, 'r')
+            history_schedule = CoreSchedule.load_schedule_from_list(json.load(f))
+            history_schedule.add_task(completed_task)
+            f.close()
+            f = open(path, 'w')
+            json.dump(history_schedule.to_dict(), f)
+            f.close()
+        self.delete_task(completed_task)
 
     # 显示某用户某一天的日程，当前版本date, user参数尚未被使用
     def show_task(self, 
@@ -345,27 +363,42 @@ class MainUI(QMainWindow):
             if _.tasktype != Task_type.DAILY: continue
             if _.check_someday_if_finished(today): continue
             if begindate and enddate:
-                tskdate = QDate(*_.ddl_year_and_month())
-                if tskdate < begindate or tskdate > enddate: continue
-
-            print('today = ', today)
+                tskdate = QDate(*_.start_year_and_month())
+                ddldate = QDate(*_.ddl_year_and_month())
+                if tskdate > enddate or ddldate < begindate: continue
+            #print('today = ', today)
 
             temp = BridgeTaskSmallWidget.TaskSmallWidget(_)
             temp.del_but.clicked.connect(self.trigger_delete_task)
             temp.detail_but.clicked.connect(self.show_task_settings_dialog)
             temp.fully_delete_but.clicked.connect(self.trigger_fully_delete_task)
             self.right_task_list_window_layout.addWidget(temp)
-        
+
+        current_tag = False
         # (ruilin) 再处理普通任务
         for _ in self.schedule.tasks:
             if _.tasktype != Task_type.NORMAL: continue
             if begindate and enddate:
-                tskdate = QDate(*_.ddl_year_and_month())
-                if tskdate < begindate or tskdate > enddate: continue
+                tskdate = QDate(*_.start_year_and_month())
+                ddldate = QDate(*_.ddl_year_and_month())
+                if tskdate > enddate or ddldate < begindate: continue
 
+            if func == cmp_by_tag:
+                if current_tag == False or current_tag != _.tag:
+                    tag_label = QLabel('任务类别: ' + _.tag)
+                    # 设置字体
+                    font = QtGui.QFont()
+                    font.setFamily('微软雅黑')
+                    font.setBold(True)
+                    font.setPointSize(12)
+                    font.setWeight(50)
+                    tag_label.setFont(font)
+                    self.right_task_list_window_layout.addWidget(tag_label)
+                    current_tag = _.tag
             temp = BridgeTaskSmallWidget.TaskSmallWidget(_)
             temp.del_but.clicked.connect(self.trigger_delete_task)
             temp.detail_but.clicked.connect(self.show_task_settings_dialog)
+            temp.complete_but.clicked.connect(self.normal_task_complete)
             self.right_task_list_window_layout.addWidget(temp)
 
 
@@ -546,7 +579,8 @@ class MainUI(QMainWindow):
             self.cur_remark_input.text(),
             self.cur_starttime_input.text(),
             self.cur_importance_input.text(),
-            self.cur_tag_input.text()
+            self.cur_tag_input.text(),
+            tsk.tasktype,
         )
 
         if self.generate_task(*temp_args, check_only = True):
