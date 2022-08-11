@@ -10,6 +10,7 @@ from register import RegisterUI
 
 # from nbformat import write
 from Core import CoreSchedule
+from Core.CoreEnum import TaskStatus
 from PyQt5.QtWidgets import (
     QApplication,
     QWidget,
@@ -114,7 +115,21 @@ class LoginUI(QMainWindow):
         else:
             with open(path, 'r') as f:
                 main_ui.schedule = CoreSchedule.load_schedule_from_list(json.load(f))
-        #
+        # 摘除过期任务
+        expired_schedule = CoreSchedule.Schedule()
+        for _ in main_ui.schedule.tasks:
+            _.update_status()
+            if _.status == TaskStatus.EXPIRED:
+                expired_schedule.add_task(_)
+        for _ in expired_schedule.tasks:
+            main_ui.schedule.remove_designated_task(_)
+
+        # 更新本地数据
+        with open(path, 'w') as f:
+            json.dump(main_ui.schedule.to_dict(), f)
+        expired_path = '.as/' + main_ui.current_user + '_expired'
+        with open(expired_path, 'w') as f:
+            json.dump(expired_schedule.to_dict(), f)
 
         main_ui.clear_layout(main_ui.right_task_list_window_layout)
         main_ui.show_task()

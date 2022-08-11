@@ -38,10 +38,10 @@ class TaskSmallWidget(QWidget):
         self.del_but = QPushButton(
             text = '今日完成' if (task.tasktype == Task_type.DAILY) else '删除',
             parent = self)
-        self.change_state_but = QPushButton(text='切换状态', parent=self)
+        #self.change_state_but = QPushButton(text='切换状态', parent=self)
         self.detail_but = QPushButton(text='查看任务详情', parent=self)
 
-        self.change_state_but.clicked.connect(self.change_state_triggered)
+        #self.change_state_but.clicked.connect(self.change_state_triggered)
 
         # 重要度标识
         self.importance_label = QLabel()
@@ -71,13 +71,13 @@ class TaskSmallWidget(QWidget):
             self.main_layout.addWidget(self.fully_delete_but, 0, 5, 1, 1)
 
             self.main_layout.addWidget(self.del_but, 0, 6, 1, 1)
-            self.main_layout.addWidget(self.change_state_but, 1, 5, 1, 1)
+            #self.main_layout.addWidget(self.change_state_but, 1, 5, 1, 1)
             self.main_layout.addWidget(self.detail_but, 1, 6, 1, 1)
             self.main_layout.addWidget(self.importance_label, 0, 7, 2, 1)
         else:
             self.main_layout.addWidget(self.label, 0, 0, 2, 5)
             self.main_layout.addWidget(self.del_but, 0, 4, 1, 1)
-            self.main_layout.addWidget(self.change_state_but, 1, 4, 1, 1)
+            #self.main_layout.addWidget(self.change_state_but, 1, 4, 1, 1)
             self.main_layout.addWidget(self.detail_but, 1, 5, 1, 1)
             self.complete_but = QPushButton(text='完成任务', parent=self)
             self.main_layout.addWidget(self.complete_but, 0, 5, 1, 1)

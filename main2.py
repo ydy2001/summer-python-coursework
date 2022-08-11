@@ -88,6 +88,14 @@ class MainUI(QMainWindow):
         self.left_window_layout.addWidget(self.history_but, 3, 0, 1, 2)
         self.history_but.clicked.connect(self.show_history)
 
+        self.deleted_but = QPushButton("查看已删除任务")
+        self.left_window_layout.addWidget(self.deleted_but, 4, 0, 1, 2)
+        self.deleted_but.clicked.connect(self.show_deleted)
+
+        self.expired_but = QPushButton("查看已过期任务")
+        self.left_window_layout.addWidget(self.expired_but, 5, 0, 1, 2)
+        self.expired_but.clicked.connect(self.show_expired)
+
         self.whatever_label = QLabel("")
         self.left_window_layout.addWidget(self.whatever_label, 3, 0, 10, 1)
 
@@ -313,10 +321,26 @@ class MainUI(QMainWindow):
     # 更加泛化的 delete_task
     # 其中 trick 参数用于决定是否关联性地删除当前显示的任务
     def delete_task(self, task: CoreTask.Task):
+        path = '.as/' + self.current_user + '_expired'
+        task.change_status(TaskStatus.DELETED)
+        if not os.path.exists(path):
+            temp = open(path, 'w')
+            deleted_schedule = CoreSchedule.Schedule()
+            deleted_schedule.add_task(task)
+            json.dump(deleted_schedule.to_dict(), temp)
+            temp.close()
+        else:
+            f = open(path, 'r')
+            deleted_schedule = CoreSchedule.load_schedule_from_list(json.load(f))
+            deleted_schedule.add_task(task)
+            f.close()
+            f = open(path, 'w')
+            json.dump(deleted_schedule.to_dict(), f)
+            f.close()
         self.schedule.remove_designated_task(task)
         self.show_task(begindate=self.begin_dateedit.date(),
                        enddate=self.end_dateedit.date())
-    
+
     # (ruilin) <每日任务专用> 彻底删除某个任务
     def trigger_fully_delete_task(self):
         self.delete_task(self.sender().parent().task)
@@ -349,7 +373,9 @@ class MainUI(QMainWindow):
             f = open(path, 'w')
             json.dump(history_schedule.to_dict(), f)
             f.close()
-        self.delete_task(completed_task)
+        self.schedule.remove_designated_task(completed_task)
+        self.show_task(begindate=self.begin_dateedit.date(),
+                       enddate=self.end_dateedit.date())
 
     # 显示某用户某一天的日程，当前版本date, user参数尚未被使用
     def show_task(self, 
@@ -528,9 +554,56 @@ class MainUI(QMainWindow):
                     self.history_schedule = CoreSchedule.load_schedule_from_list(json.load(f))
             self.show_task(schedule=self.history_schedule)
             self.history_but.setText('取消历史任务查看')
+            self.deleted_but.setDisabled(True)
+            self.expired_but.setDisabled(True)
         else:
-            self.show_task()
+            self.show_task(begindate=self.begin_dateedit.date(),
+                           enddate=self.end_dateedit.date())
             self.history_but.setText('查看历史完成任务')
+            self.deleted_but.setEnabled(True)
+            self.expired_but.setEnabled(True)
+
+    def show_deleted(self):
+        if self.deleted_but.text() == '查看已删除任务':
+            path = '.as/' + self.current_user + '_deleted'
+            if not os.path.exists(path):
+                temp = open(path, 'w')
+                deleted_schedule = CoreSchedule.Schedule()
+                temp.close()
+            else:
+                with open(path, 'r') as f:
+                    deleted_schedule = CoreSchedule.load_schedule_from_list(json.load(f))
+            self.show_task(schedule=deleted_schedule)
+            self.deleted_but.setText('取消已删除任务查看')
+            self.history_but.setDisabled(True)
+            self.expired_but.setDisabled(True)
+        else:
+            self.show_task(begindate=self.begin_dateedit.date(),
+                           enddate=self.end_dateedit.date())
+            self.deleted_but.setText('查看已删除任务')
+            self.history_but.setEnabled(True)
+            self.expired_but.setEnabled(True)
+
+    def show_expired(self):
+        if self.expired_but.text() == '查看已过期任务':
+            path = '.as/' + self.current_user + '_expired'
+            if not os.path.exists(path):
+                temp = open(path, 'w')
+                expired_schedule = CoreSchedule.Schedule()
+                temp.close()
+            else:
+                with open(path, 'r') as f:
+                    expired_schedule = CoreSchedule.load_schedule_from_list(json.load(f))
+            self.show_task(schedule=expired_schedule)
+            self.expired_but.setText('取消已过期任务查看')
+            self.history_but.setDisabled(True)
+            self.deleted_but.setDisabled(True)
+        else:
+            self.show_task(begindate=self.begin_dateedit.date(),
+                           enddate=self.end_dateedit.date())
+            self.expired_but.setText('查看已过期任务')
+            self.history_but.setEnabled(True)
+            self.deleted_but.setEnabled(True)
 
     # (ruilin) 新的任务详细信息的UI，弹出一个框，可以显示也可以修改
     def show_task_settings_dialog(self):
