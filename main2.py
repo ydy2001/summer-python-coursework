@@ -41,6 +41,8 @@ class MainUI(QMainWindow):
         self.current_user = 'default user'
         ## showing_big_widget 为当前在 detail window 中展示的 TaskBigWidget
         self.showing_big_widget = None
+        path = '.as/' + self.current_user + '_history'
+        self.history_schedule = None
         self.setup_UI()
 
     # 从总体上将主窗口分成左右两个部分
@@ -82,8 +84,12 @@ class MainUI(QMainWindow):
         self.left_window_layout.addWidget(self.left_button1, 2, 1, 1, 1)
         self.left_button1.clicked.connect(self.traditional_triggered)
 
+        self.history_but = QPushButton("查看历史完成任务")
+        self.left_window_layout.addWidget(self.history_but, 3, 0, 1, 2)
+        self.history_but.clicked.connect(self.show_history)
+
         self.whatever_label = QLabel("")
-        self.left_window_layout.addWidget(self.whatever_label, 3, 0, 10 , 1)
+        self.left_window_layout.addWidget(self.whatever_label, 3, 0, 10, 1)
 
         # (ruilin) 给控制栏设置灰色背景以进行强调
         plt = self.left_window.palette()
@@ -327,6 +333,7 @@ class MainUI(QMainWindow):
 
     def normal_task_complete(self):
         completed_task = self.sender().parent().task
+        completed_task.change_status(TaskStatus.DONE)
         path = '.as/' + self.current_user + '_history'
         if not os.path.exists(path):
             temp = open(path, 'w')
@@ -349,17 +356,19 @@ class MainUI(QMainWindow):
                   store = True,
                   func = cmp_by_ddl, 
                   begindate = None, 
-                  enddate = None):
-            
+                  enddate = None,
+                  schedule = None):
+        if schedule is None:
+            schedule = self.schedule
         # 排序
-        self.schedule.sort_task(cmp_func=func)
+        schedule.sort_task(cmp_func=func)
         # 清空当前 task_list_window 中的对象
         self.clear_layout(self.right_task_list_window_layout)
 
         # (ruilin) 将 schedule 中的每个 Task 使用一个Widget进行展示
         # (ruilin) 先处理每日任务
         today = datetime.datetime.today().date()
-        for _ in self.schedule.tasks:
+        for _ in schedule.tasks:
             if _.tasktype != Task_type.DAILY: continue
             if _.check_someday_if_finished(today): continue
             if begindate and enddate:
@@ -376,7 +385,7 @@ class MainUI(QMainWindow):
 
         current_tag = False
         # (ruilin) 再处理普通任务
-        for _ in self.schedule.tasks:
+        for _ in schedule.tasks:
             if _.tasktype != Task_type.NORMAL: continue
             if begindate and enddate:
                 tskdate = QDate(*_.start_year_and_month())
@@ -403,13 +412,13 @@ class MainUI(QMainWindow):
 
 
         # (ruilin) 设计为从上到下的布置，不会让 Task 一开始显示在中间
-        if len(self.schedule.tasks) < 6:
-            for i in range(6 - len(self.schedule.tasks)):
+        if len(schedule.tasks) < 6:
+            for i in range(6 - len(schedule.tasks)):
                 temp = QLabel()
                 self.right_task_list_window_layout.addWidget(temp)
         
         # (ruilin) 每次调用 show_task 的时候，都会重新刷新本地数据
-        if store:
+        if store and (schedule == self.schedule):
             # make sure user file exists
             path = '.as/' + self.current_user
             if not os.path.exists(path):
@@ -417,7 +426,7 @@ class MainUI(QMainWindow):
                 temp.close()
             with open(path, 'w') as f:
                 # print('Dict = ', self.schedule.to_dict())
-                json.dump(self.schedule.to_dict(), f)
+                json.dump(schedule.to_dict(), f)
 
     # (ruilin) 该函数是基本功能的使能函数，作用是在程序中添加一个指定的任务
     def generate_task(self : str, 
@@ -506,6 +515,22 @@ class MainUI(QMainWindow):
         msgbox.setStandardButtons(QMessageBox.Ok)
         msgbox.setStyleSheet('''QLabel{min-width:300px; min-height:150px}''')
         msgbox.exec()
+
+    def show_history(self):
+        if self.history_but.text() == '查看历史完成任务':
+            path = '.as/' + self.current_user + '_history'
+            if not os.path.exists(path):
+                temp = open(path, 'w')
+                self.history_schedule = CoreSchedule.Schedule()
+                temp.close()
+            else:
+                with open(path, 'r') as f:
+                    self.history_schedule = CoreSchedule.load_schedule_from_list(json.load(f))
+            self.show_task(schedule=self.history_schedule)
+            self.history_but.setText('取消历史任务查看')
+        else:
+            self.show_task()
+            self.history_but.setText('查看历史完成任务')
 
     # (ruilin) 新的任务详细信息的UI，弹出一个框，可以显示也可以修改
     def show_task_settings_dialog(self):
