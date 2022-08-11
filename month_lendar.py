@@ -143,14 +143,26 @@ class Monthlendar(QWidget):
             today_tasks = []
 
             for tsk in self.schedule.tasks:
-                (yy1, mm1, dd1) = tsk.ddl_year_and_month()
-                if yy1 == day.year and mm1 == day.month and dd1 == day.day:
-                    today_ddl_count += 1
-                    today_tasks.append(tsk)
+
+                if tsk.tasktype == Task_type.NORMAL:
+                    (yy1, mm1, dd1) = tsk.ddl_year_and_month()
+                    if yy1 == day.year and mm1 == day.month and dd1 == day.day:
+                        today_ddl_count += 1
+                        today_tasks.append(tsk)
+                else:
+                    (yy1, mm1, dd1) = tsk.start_year_and_month()
+                    (yy2, mm2, dd2) = tsk.ddl_year_and_month()
+                    t1 = datetime.datetime(yy1, mm1, dd1)
+                    t2 = datetime.datetime(yy2, mm2, dd2)
+                    t0 = datetime.datetime(day.year, day.month, day.day)
+                    if tsk.check_someday_if_finished(t0.date()): continue
+                    if t1 <= t0 <= t2:
+                        today_ddl_count += 1
+                        today_tasks.append(tsk)
 
             today_text = str(day)
             if today_ddl_count:
-                today_text += '\n 今日有{}件事情截止'.format(today_ddl_count)
+                today_text += '\n 今日有{}件事情'.format(today_ddl_count)
 
                 # (ruilin) 在当前日期上显示三条事情
                 for i in range(min(3, len(today_tasks))):
@@ -177,6 +189,8 @@ class Monthlendar(QWidget):
         # (ruilin) idx 是这个按钮的 id
         idx = self.widgets.index(self.sender())
         print('id = ', idx, self.idx_to_day[idx])
+
+        # (ruilin) 对 self.today 的解释：每当点击月历模式中的一个大按钮，self.today 便会切换到这一天
         self.today = self.idx_to_day[idx]
 
         # (ruilin) 弹出详细信息窗口，进行基本设置
@@ -201,12 +215,26 @@ class Monthlendar(QWidget):
         # (ruilin) 将是当日的任务展示出来
         goint_to_show_task = []
         for tsk in self.schedule.tasks:
-            (yy1, mm1, dd1) = tsk.ddl_year_and_month()
-            if yy1 == self.today.year and mm1 == self.today.month and dd1 == self.today.day:
-                goint_to_show_task.append(tsk)
-                temp_bridge_widget = TaskSmallWidget_2(tsk)
-                self.canvas_layout.addWidget(temp_bridge_widget)
-                temp_bridge_widget.del_but.clicked.connect(self.trigger_bridge_widget_del)
+
+            if tsk.tasktype == Task_type.NORMAL:
+                (yy1, mm1, dd1) = tsk.ddl_year_and_month()
+                if yy1 == self.today.year and mm1 == self.today.month and dd1 == self.today.day:
+                    goint_to_show_task.append(tsk)
+                    temp_bridge_widget = TaskSmallWidget_2(tsk)
+                    self.canvas_layout.addWidget(temp_bridge_widget)
+                    temp_bridge_widget.del_but.clicked.connect(self.trigger_bridge_widget_del)
+            else:
+                (yy1, mm1, dd1) = tsk.start_year_and_month()
+                (yy2, mm2, dd2) = tsk.ddl_year_and_month()
+                t1 = datetime.datetime(yy1, mm1, dd1)
+                t2 = datetime.datetime(yy2, mm2, dd2)
+                t0 = datetime.datetime(self.today.year, self.today.month, self.today.day)
+                if tsk.check_someday_if_finished(t0.date()): continue
+                if t1 <= t0 <= t2:
+                    goint_to_show_task.append(tsk)
+                    temp_bridge_widget = TaskSmallWidget_2(tsk)
+                    self.canvas_layout.addWidget(temp_bridge_widget)
+                    temp_bridge_widget.del_but.clicked.connect(self.trigger_bridge_widget_del)
 
 
 
@@ -227,21 +255,41 @@ class Monthlendar(QWidget):
         print(self.sender())
         print(self.sender().parent())
         print(self.sender().parent().parent())
+        print('self.today = ', self.today, type(self.today))
 
         bridge_widget = self.sender().parent()
         canvas = self.sender().parent().parent()
 
-        self.schedule.remove_designated_task(bridge_widget.task)
+        if bridge_widget.task.tasktype == Task_type.DAILY:
+            bridge_widget.task.set_someday_finished(self.today)
+        else:   # (ruilin) 普通任务是直接删掉
+            self.schedule.remove_designated_task(bridge_widget.task)
+        
+        
         self.flush()
         
         self.clear_layout(self.canvas_layout)
         # (ruilin) 一个暴力的刷新方式
         for tsk in self.schedule.tasks:
-            (yy1, mm1, dd1) = tsk.ddl_year_and_month()
-            if yy1 == self.today.year and mm1 == self.today.month and dd1 == self.today.day:
-                temp_bridge_widget = TaskSmallWidget_2(tsk)
-                self.canvas_layout.addWidget(temp_bridge_widget)
-                temp_bridge_widget.del_but.clicked.connect(self.trigger_bridge_widget_del)
+
+            if tsk.tasktype == Task_type.NORMAL:
+                (yy1, mm1, dd1) = tsk.ddl_year_and_month()
+                if yy1 == self.today.year and mm1 == self.today.month and dd1 == self.today.day:
+                    temp_bridge_widget = TaskSmallWidget_2(tsk)
+                    self.canvas_layout.addWidget(temp_bridge_widget)
+                    temp_bridge_widget.del_but.clicked.connect(self.trigger_bridge_widget_del)
+            else:
+                (yy1, mm1, dd1) = tsk.start_year_and_month()
+                (yy2, mm2, dd2) = tsk.ddl_year_and_month()
+                t1 = datetime.datetime(yy1, mm1, dd1)
+                t2 = datetime.datetime(yy2, mm2, dd2)
+                t0 = datetime.datetime(self.today.year, self.today.month, self.today.day)
+
+                if tsk.check_someday_if_finished(t0.date()): continue
+                if t1 <= t0 <= t2:
+                    temp_bridge_widget = TaskSmallWidget_2(tsk)
+                    self.canvas_layout.addWidget(temp_bridge_widget)
+                    temp_bridge_widget.del_but.clicked.connect(self.trigger_bridge_widget_del)
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)

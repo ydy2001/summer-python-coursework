@@ -1,7 +1,10 @@
 import time
+import datetime
+from more_itertools import one
 from .CoreEnum import (
     Int_to_TaskStatus,
     Int_to_importance,
+    Task_type,
     TaskStatus_to_int,
     Importance_to_int, 
     ImportanceLevel, 
@@ -20,7 +23,8 @@ class Task:
                  start_time:str,
                  importance_level:ImportanceLevel,
                  tag:str = 'uncategorized',
-                 status = TaskStatus.NOT_STARTED
+                 status = TaskStatus.NOT_STARTED,
+                 tasktype = Task_type.NORMAL
                  ):
         self.ddl = ddl                            # ddl，要求格式为 YYYY-MM-DD hh:mm
         self.title = title                        # 标题
@@ -30,7 +34,9 @@ class Task:
         self.importance_level = importance_level  # 重要程度
         self.tag = tag                            # 任务tag
         self.status = status                      # (ruilin) 注意这里通过输入的参数确定，为了载入本地数据
+        self.tasktype = tasktype                  # (ruilin) 普通任务 / 每日任务
         self.update_status()                      # 根据当前时间，start_time，ddl更新任务状态
+        self.finished_set = set()                 # (ruilin) 只对每日任务有用，一个装有已完成的所有时间的集合
 
     def update_status(self):                      # 根据当前时间和状态更新任务状态
         # 对于已完成、被删除和过期未完成的任务，不适用此方法
@@ -52,12 +58,14 @@ class Task:
                '<br>任务标签: ' + self.tag + \
                '<br>截止时间: ' + self.ddl + \
                '<br>任务状态: ' + TaskStatus_to_str[self.status]
-        '''
+        
         if len(self.content) != 0:
-            text += '\n内容: ' + self.content
+            text += '<br>内容: ' + self.content
         if len(self.remark) != 0:
-            text += '\n备注: ' + self.remark
-        '''
+            text += '<br>备注: ' + self.remark
+        if self.tasktype == Task_type.DAILY:
+            text = '[每日任务]<br>' + text
+
         return text
 
     # 有关文件保存的 ==============================================================
@@ -77,6 +85,16 @@ class Task:
     def ddl_year_and_month(self) :
         tsk_ddl = time.strptime(self.ddl, "%Y-%m-%d %H:%M")
         return (tsk_ddl.tm_year, tsk_ddl.tm_mon, tsk_ddl.tm_mday)
+    
+    def start_year_and_month(self) :
+        tsk_start = time.strptime(self.start_time, "%Y-%m-%d %H:%M")
+        return (tsk_start.tm_year, tsk_start.tm_mon, tsk_start.tm_mday)
+
+    def set_someday_finished(self, one_date):
+        self.finished_set.add(one_date)
+    
+    def check_someday_if_finished(self, one_date) -> bool:
+        return one_date in self.finished_set
 
     # 以下函数暂时还未开始使用
     # Currently not used. ========================================================

@@ -3,6 +3,11 @@ from turtle import done
 
 
 @unique
+class Task_type(Enum):
+    NORMAL = 0
+    DAILY = 1
+
+@unique
 class UI_mode(Enum):
     TRADITIONAL = 0
     CALANDAR = 1
@@ -52,6 +57,9 @@ Importance_to_int = {
 }
 
 Int_to_importance = { value : key for (key, value) in Importance_to_int.items()}
+
+
+
 
 def get_importance_value(other):
     if other == ImportanceLevel.INSIGNIFICANT:

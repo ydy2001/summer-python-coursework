@@ -171,10 +171,15 @@ class MainUI(QMainWindow):
                                                  8, 1, 2, 5)
         
         # 设置确认新建任务按钮
-        self.right_input_button = QPushButton("确认新建任务")
+        self.right_input_button = QPushButton("新建普通任务")
         self.right_input_button.setMinimumHeight(100)
         self.right_window_layout.addWidget(self.right_input_button,
-                                                 10, 1, 2, 5)
+                                                 10, 1, 2, 4)
+
+        self.right_input_daily_button = QPushButton("新建每日任务")
+        self.right_input_daily_button.setMinimumHeight(100)
+        self.right_window_layout.addWidget(self.right_input_daily_button,
+                                                 10, 5, 2, 1)
         
         # (ruilin) 以下是原来的函数 set_right_task_list 中的内容
         self.right_task_list_window = QWidget()
@@ -251,15 +256,23 @@ class MainUI(QMainWindow):
         # (ruilin) “确认新建任务” 按钮作为信号，链接到槽 “generate_task” 中
         ## 现链接到槽 generate_task_shell 中
         self.right_input_button.clicked.connect(self.generate_task_shell)
+        self.right_input_daily_button.clicked.connect(self.generate_task_shell)
 
     def generate_task_shell(self):
+
+        if self.sender() == self.right_input_button:
+            tasktype = Task_type.NORMAL
+        else:
+            tasktype = Task_type.DAILY
+
         self.generate_task(self.ddl_input_line.text(),
                            self.title_input_line.text(),
                            self.content_input_line.toPlainText(),
                            self.remark_input_line.toPlainText(),
                            self.start_time_input_line.text(),
                            self.importance_level_input_line.text(),
-                           self.tag_input_line.text())
+                           self.tag_input_line.text(),
+                           tasktype = tasktype)
 
     # <关于展示任务>==========================================================================
 
@@ -298,9 +311,20 @@ class MainUI(QMainWindow):
         self.show_task(begindate=self.begin_dateedit.date(),
                        enddate=self.end_dateedit.date())
     
+    # (ruilin) <每日任务专用> 彻底删除某个任务
+    def trigger_fully_delete_task(self):
+        self.delete_task(self.sender().parent().task)
+
     # (ruilin) 新的点击删除按钮的槽函数
     def trigger_delete_task(self):
-        self.delete_task(self.sender().parent().task)
+        cur_tsk = self.sender().parent().task
+        if cur_tsk.tasktype == Task_type.NORMAL:
+            self.delete_task(self.sender().parent().task)
+        else:
+            cur_tsk.set_someday_finished(datetime.datetime.today().date()) # (ruilin) 放进去了一个datetime对象
+            self.show_task(begindate=self.begin_dateedit.date(),
+                       enddate=self.end_dateedit.date())
+
 
     # 显示某用户某一天的日程，当前版本date, user参数尚未被使用
     def show_task(self, 
@@ -308,14 +332,33 @@ class MainUI(QMainWindow):
                   func = cmp_by_ddl, 
                   begindate = None, 
                   enddate = None):
+            
         # 排序
         self.schedule.sort_task(cmp_func=func)
         # 清空当前 task_list_window 中的对象
         self.clear_layout(self.right_task_list_window_layout)
 
         # (ruilin) 将 schedule 中的每个 Task 使用一个Widget进行展示
+        # (ruilin) 先处理每日任务
+        today = datetime.datetime.today().date()
         for _ in self.schedule.tasks:
+            if _.tasktype != Task_type.DAILY: continue
+            if _.check_someday_if_finished(today): continue
+            if begindate and enddate:
+                tskdate = QDate(*_.ddl_year_and_month())
+                if tskdate < begindate or tskdate > enddate: continue
 
+            print('today = ', today)
+
+            temp = BridgeTaskSmallWidget.TaskSmallWidget(_)
+            temp.del_but.clicked.connect(self.trigger_delete_task)
+            temp.detail_but.clicked.connect(self.show_task_settings_dialog)
+            temp.fully_delete_but.clicked.connect(self.trigger_fully_delete_task)
+            self.right_task_list_window_layout.addWidget(temp)
+        
+        # (ruilin) 再处理普通任务
+        for _ in self.schedule.tasks:
+            if _.tasktype != Task_type.NORMAL: continue
             if begindate and enddate:
                 tskdate = QDate(*_.ddl_year_and_month())
                 if tskdate < begindate or tskdate > enddate: continue
@@ -324,6 +367,7 @@ class MainUI(QMainWindow):
             temp.del_but.clicked.connect(self.trigger_delete_task)
             temp.detail_but.clicked.connect(self.show_task_settings_dialog)
             self.right_task_list_window_layout.addWidget(temp)
+
 
         # (ruilin) 设计为从上到下的布置，不会让 Task 一开始显示在中间
         if len(self.schedule.tasks) < 6:
@@ -351,6 +395,7 @@ class MainUI(QMainWindow):
                       _start_time : str, 
                       _importance_level : str, 
                       _tag : str,
+                      tasktype : Task_type,
                       check_only = False):
         # (ruilin) 已添加异常判断和默认值
         ## 修复了忘记处理tag的bug
@@ -409,7 +454,8 @@ class MainUI(QMainWindow):
 
         if check_only == False:
             # (ruilin) 将 task 添加到 self.schedule
-            task = CoreTask.Task(ddl, title, content, remark, start_time, importance_level, tag)
+            task = CoreTask.Task(ddl, title, content, remark, \
+                start_time, importance_level, tag, tasktype = tasktype)
             self.schedule.add_task(task = task)
             self.show_task(begindate=self.begin_dateedit.date(),
                            enddate=self.end_dateedit.date())
