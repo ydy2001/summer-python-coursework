@@ -5,7 +5,8 @@ from .CoreEnum import (
     TaskStatus_to_int,
     Importance_to_int, 
     ImportanceLevel, 
-    TaskStatus, 
+    TaskStatus,
+    TaskStatus_to_str, 
     get_importance_value,
 )
 
@@ -48,8 +49,9 @@ class Task:
 
     def to_string(self) -> str:
         text = self.title + \
-               '\n任务标签: ' + self.tag + \
-               '\n截止时间: ' + self.ddl
+               '<br>任务标签: ' + self.tag + \
+               '<br>截止时间: ' + self.ddl + \
+               '<br>任务状态: ' + TaskStatus_to_str[self.status]
         '''
         if len(self.content) != 0:
             text += '\n内容: ' + self.content

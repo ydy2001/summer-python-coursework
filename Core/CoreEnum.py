@@ -10,21 +10,30 @@ class UI_mode(Enum):
 
 @unique
 class TaskStatus(Enum):
-    DELETED = -3        # 被删除
-    EXPIRED = -2        # 过期未完成
-    DONE = -1           # 顺利完成
-    NOT_STARTED = 0     # 未开始
-    IN_PROCESS = 1      # 进行中
+    DELETED = 0       # 被删除
+    EXPIRED = 1        # 过期未完成
+    DONE = 2           # 顺利完成
+    NOT_STARTED = 3     # 未开始
+    IN_PROCESS = 4      # 进行中
 
 TaskStatus_to_int = {
-    TaskStatus.DELETED : -3,   
-    TaskStatus.EXPIRED : -2,       
-    TaskStatus.DONE : -1,       
-    TaskStatus.NOT_STARTED : 0,     
-    TaskStatus.IN_PROCESS : 1,      
+    TaskStatus.DELETED : 0,   
+    TaskStatus.EXPIRED : 1,       
+    TaskStatus.DONE : 2,       
+    TaskStatus.NOT_STARTED : 3,     
+    TaskStatus.IN_PROCESS : 4,      
 }
 
-Int_to_TaskStatus = { value : key for (value, key) in TaskStatus_to_int.items()}
+TaskStatus_to_str = {
+    TaskStatus.DELETED : '已删除',   
+    TaskStatus.EXPIRED : '已超时',       
+    TaskStatus.DONE : '已完成',       
+    TaskStatus.NOT_STARTED : '尚未开始',     
+    TaskStatus.IN_PROCESS : '进行中',      
+}
+
+
+Int_to_TaskStatus = { value : key for (key, value) in TaskStatus_to_int.items()}
 
 @unique
 class ImportanceLevel(Enum):
@@ -59,12 +68,12 @@ def get_importance_value(other):
 
 def get_status_value(other):
     if other == TaskStatus.DELETED:
-        return -3
-    elif other == TaskStatus.EXPIRED:
-        return -2
-    elif other == TaskStatus.DONE:
-        return -1
-    elif other == TaskStatus.NOT_STARTED:
         return 0
-    else:
+    elif other == TaskStatus.EXPIRED:
         return 1
+    elif other == TaskStatus.DONE:
+        return 2
+    elif other == TaskStatus.NOT_STARTED:
+        return 3
+    else:
+        assert False
