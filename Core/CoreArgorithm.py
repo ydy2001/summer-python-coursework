@@ -8,6 +8,23 @@ def cmp_by_ddl(x: Task, y: Task):
     return -1 if x_ddl_time < y_ddl_time else 1
 
 
+def cmp_intelligent(x: Task, y: Task):
+    x_ddl_time = time.mktime(time.strptime(x.ddl, "%Y-%m-%d %H:%M"))
+    y_ddl_time = time.mktime(time.strptime(y.ddl, "%Y-%m-%d %H:%M"))
+    x_importance = get_importance_value(x.importance_level)
+    y_importance = get_importance_value(y.importance_level)
+    if x_ddl_time < y_ddl_time:
+        return -1
+    elif x_ddl_time == y_ddl_time:
+        if x_importance > y_importance:
+            return -1
+        elif x_importance == y_importance:
+            return cmp_by_title(x, y)
+        else:
+            return 1
+    else:
+        return 1
+
 def cmp_by_importance(x: Task, y: Task):
     x_importance = get_importance_value(x.importance_level)
     y_importance = get_importance_value(y.importance_level)

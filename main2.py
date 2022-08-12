@@ -228,6 +228,8 @@ class MainUI(QMainWindow):
         self.arrange_title_but.setSizePolicy(policy)
         self.arrange_importance_but = QPushButton('按重要程度整理')
         self.arrange_importance_but.setSizePolicy(policy)
+        self.intelligent_but = QPushButton('智能日程整理')
+        self.intelligent_but.setSizePolicy(policy)
         ## 排序功能的小窗口
         self.arrange_window = QWidget()
         self.arrange_layout = QGridLayout()
@@ -237,24 +239,26 @@ class MainUI(QMainWindow):
         self.arrange_layout.addWidget(self.arrange_tag_but, 0, 1, 1, 1)
         self.arrange_layout.addWidget(self.arrange_title_but, 1, 0, 1, 1)
         self.arrange_layout.addWidget(self.arrange_importance_but, 1, 1, 1, 1)
-        self.right_window_layout.addWidget(self.arrange_window, 12, 1, 3, 5)
+        self.arrange_layout.addWidget(self.intelligent_but, 2, 0, 1, 2)
+        self.right_window_layout.addWidget(self.arrange_window, 12, 1, 4, 5)
 
         # (ruilin) set_arrange_logic
         self.arrange_ddl_but.clicked.connect(self.arrange_triggered)
         self.arrange_importance_but.clicked.connect(self.arrange_triggered)
         self.arrange_title_but.clicked.connect(self.arrange_triggered)
         self.arrange_tag_but.clicked.connect(self.arrange_triggered)
+        self.intelligent_but.clicked.connect(self.arrange_triggered)
 
         # (ruilin) 以下使用日历对话框器件
         self.begin_dateedit = QDateEdit(QDate.currentDate())
         self.begin_dateedit.setCalendarPopup(True)
         self.begin_dateedit.setDisplayFormat('开始: yyyy-MM-dd')
-        self.arrange_layout.addWidget(self.begin_dateedit, 2, 0, 1, 1)
+        self.arrange_layout.addWidget(self.begin_dateedit, 3, 0, 1, 1)
 
         self.end_dateedit = QDateEdit(QDate(2077, 12, 31))
         self.end_dateedit.setCalendarPopup(True)
         self.end_dateedit.setDisplayFormat('结束: yyyy-MM-dd')
-        self.arrange_layout.addWidget(self.end_dateedit, 2, 1, 1, 1)
+        self.arrange_layout.addWidget(self.end_dateedit, 3, 1, 1, 1)
 
         self.begin_dateedit.dateChanged.connect(self.datechange_triggered)
         self.end_dateedit.dateChanged.connect(self.datechange_triggered)
@@ -302,6 +306,9 @@ class MainUI(QMainWindow):
                            enddate=self.end_dateedit.date())
         elif self.sender() == self.arrange_title_but:
             self.show_task(func=cmp_by_title, begindate=self.begin_dateedit.date(),
+                           enddate=self.end_dateedit.date())
+        elif self.sender() == self.intelligent_but:
+            self.show_task(func=cmp_intelligent, begindate=self.begin_dateedit.date(),
                            enddate=self.end_dateedit.date())
 
     def datechange_triggered(self):
@@ -391,6 +398,16 @@ class MainUI(QMainWindow):
         # 清空当前 task_list_window 中的对象
         self.clear_layout(self.right_task_list_window_layout)
 
+        if func == cmp_intelligent:
+                tag_label = QLabel('智能排序结果: ')
+                # 设置字体
+                font = QtGui.QFont()
+                font.setFamily('微软雅黑')
+                font.setBold(True)
+                font.setPointSize(12)
+                font.setWeight(50)
+                tag_label.setFont(font)
+                self.right_task_list_window_layout.addWidget(tag_label)
         # (ruilin) 将 schedule 中的每个 Task 使用一个Widget进行展示
         # (ruilin) 先处理每日任务
         today = datetime.datetime.today().date()
