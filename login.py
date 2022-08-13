@@ -121,6 +121,8 @@ class LoginUI(QMainWindow):
             _.update_status()
             if _.status == TaskStatus.EXPIRED:
                 expired_schedule.add_task(_)
+        
+        
         for _ in expired_schedule.tasks:
             main_ui.schedule.remove_designated_task(_)
 

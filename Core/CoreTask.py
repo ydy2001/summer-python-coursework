@@ -1,17 +1,7 @@
 import time
 import datetime
 #from more_itertools import one
-from .CoreEnum import (
-    Int_to_TaskStatus,
-    Int_to_importance,
-    Task_type,
-    TaskStatus_to_int,
-    Importance_to_int, 
-    ImportanceLevel, 
-    TaskStatus,
-    TaskStatus_to_str, 
-    get_importance_value,
-)
+from .CoreEnum import *
 
 
 class Task:
@@ -78,7 +68,8 @@ class Task:
             'start_time' : str(self.start_time),
             'importance_level' : Importance_to_int[self.importance_level],
             'tag': self.tag,
-            'status' : TaskStatus_to_int[self.status]
+            'status' : TaskStatus_to_int[self.status],
+            'tasktype' : TaskType_to_int[self.tasktype]
         }
 
 
@@ -95,6 +86,9 @@ class Task:
     
     def check_someday_if_finished(self, one_date) -> bool:
         return one_date in self.finished_set
+
+    def count_finished_days(self) -> int:
+        return len(self.finished_set)
 
     # 以下函数暂时还未开始使用
     # Currently not used. ========================================================
@@ -151,7 +145,8 @@ def load_task_from_dict(dic : dict) -> Task:
         start_time = dic['start_time'],
         importance_level = ImportanceLevel(dic['importance_level']),
         tag = dic['tag'],
-        status = TaskStatus(dic['status'])
+        status = TaskStatus(dic['status']),
+        tasktype= Int_to_TaskType[dic['tasktype']]
     )
 
 

@@ -8,6 +8,7 @@ import json
 
 
 from month_lendar import *
+from analyze_panel import *
 from Core import CoreTask, CoreSchedule
 from Core.CoreEnum import *
 from Core.CoreArgorithm import *
@@ -41,7 +42,7 @@ class MainUI(QMainWindow):
         self.current_user = 'default user'
         ## showing_big_widget 为当前在 detail window 中展示的 TaskBigWidget
         self.showing_big_widget = None
-        path = '.as/' + self.current_user + '_history'
+        # path = '.as/' + self.current_user + '_history'
         self.history_schedule = None
         self.setup_UI()
 
@@ -77,27 +78,20 @@ class MainUI(QMainWindow):
 
 
         self.left_button0 = QPushButton('月历模式')
-        self.left_window_layout.addWidget(self.left_button0, 2, 0, 1, 1)
+        self.left_window_layout.addWidget(self.left_button0, 2, 0, 1, 2)
         self.left_button0.clicked.connect(self.month_calendar_triggered)
 
         self.left_button1 = QPushButton('传统模式')
-        self.left_window_layout.addWidget(self.left_button1, 2, 1, 1, 1)
+        self.left_window_layout.addWidget(self.left_button1, 3, 0, 1, 2)
         self.left_button1.clicked.connect(self.traditional_triggered)
 
-        self.history_but = QPushButton("查看历史完成任务")
-        self.left_window_layout.addWidget(self.history_but, 3, 0, 1, 2)
-        self.history_but.clicked.connect(self.show_history)
+        self.left_button2 = QPushButton('数据查看')
+        self.left_window_layout.addWidget(self.left_button2, 4, 0, 1, 2)
+        self.left_button2.clicked.connect(self.analyze_triggered)
 
-        self.deleted_but = QPushButton("查看已删除任务")
-        self.left_window_layout.addWidget(self.deleted_but, 4, 0, 1, 2)
-        self.deleted_but.clicked.connect(self.show_deleted)
-
-        self.expired_but = QPushButton("查看已过期任务")
-        self.left_window_layout.addWidget(self.expired_but, 5, 0, 1, 2)
-        self.expired_but.clicked.connect(self.show_expired)
 
         self.whatever_label = QLabel("")
-        self.left_window_layout.addWidget(self.whatever_label, 3, 0, 10, 1)
+        self.left_window_layout.addWidget(self.whatever_label, 8, 0, 5, 2)
 
         # (ruilin) 给控制栏设置灰色背景以进行强调
         plt = self.left_window.palette()
@@ -263,6 +257,29 @@ class MainUI(QMainWindow):
         self.begin_dateedit.dateChanged.connect(self.datechange_triggered)
         self.end_dateedit.dateChanged.connect(self.datechange_triggered)
 
+        # (ruilin) 查看指定状态任务
+        self.query_state_label = QLabel('<指定状态>')
+        self.right_window_layout.addWidget(self.query_state_label, 16, 0, 2, 1)
+       
+        self.state_window = QWidget()
+        self.state_window_layout = QGridLayout()
+        self.state_window.setLayout(self.state_window_layout)
+
+
+        self.history_but = QPushButton("查看历史完成任务")
+        self.state_window_layout.addWidget(self.history_but, 0, 0, 1, 1)
+        self.history_but.clicked.connect(self.show_history)
+
+        self.deleted_but = QPushButton("查看已删除任务")
+        self.state_window_layout.addWidget(self.deleted_but, 0, 1, 1, 1)
+        self.deleted_but.clicked.connect(self.show_deleted)
+
+        self.expired_but = QPushButton("查看已过期任务")
+        self.state_window_layout.addWidget(self.expired_but, 0, 2, 1, 1)
+        self.expired_but.clicked.connect(self.show_expired)
+
+        self.right_window_layout.addWidget(self.state_window, 16, 1, 2, 5)
+
     def setup_UI(self):
         self.setWindowTitle('AweSomeSchedule')
         self.resize(2400, 1500)
@@ -328,7 +345,7 @@ class MainUI(QMainWindow):
     # 更加泛化的 delete_task
     # 其中 trick 参数用于决定是否关联性地删除当前显示的任务
     def delete_task(self, task: CoreTask.Task):
-        path = '.as/' + self.current_user + '_expired'
+        path = '.as/' + self.current_user + '_deleted'
         task.change_status(TaskStatus.DELETED)
         if not os.path.exists(path):
             temp = open(path, 'w')
@@ -724,10 +741,14 @@ class MainUI(QMainWindow):
     def month_calendar_triggered(self):
 
         # (ruilin) 如果 UI 模式已经在月历模式下，不做任何操作
-        if self.current_UI_mode == UI_mode.CALANDAR: return
-        self.current_UI_mode = UI_mode.CALANDAR
+        if self.current_UI_mode == UI_mode.CALANDAR: 
+            return
+        elif self.current_UI_mode == UI_mode.TRADITIONAL:
+            self.clear_layout(self.right_window_layout)
+        else:
+            self.clear_layout(self.analyze_window)
 
-        self.clear_layout(self.right_window_layout)
+        self.current_UI_mode = UI_mode.CALANDAR
         self.month_calander = Monthlendar(self.schedule)
         self.main_window_layout.addWidget(self.month_calander, 0, 1, 30, 16)
 
@@ -735,12 +756,30 @@ class MainUI(QMainWindow):
     # (ruilin) 切换到传统模式
     def traditional_triggered(self):
 
-        if self.current_UI_mode == UI_mode.TRADITIONAL: return
-        self.current_UI_mode = UI_mode.TRADITIONAL
+        if self.current_UI_mode == UI_mode.TRADITIONAL: 
+            return
+        elif self.current_UI_mode == UI_mode.CALANDAR:
+            self.clear_layout(self.month_calander.month_lendar_layout)
+        else:
+            self.clear_layout(self.analyze_window)
 
-        self.clear_layout(self.month_calander.month_lendar_layout)
+        self.current_UI_mode = UI_mode.TRADITIONAL
         self.main_window_layout.removeWidget(self.month_calander)
         self.fill_right()
+
+    def analyze_triggered(self):
+        if self.current_UI_mode == UI_mode.ANALYZE: 
+            return
+        elif self.current_UI_mode == UI_mode.TRADITIONAL:
+            self.clear_layout(self.right_window_layout)
+        else:
+            self.clear_layout(self.month_calander.month_lendar_layout)
+
+        self.current_UI_mode = UI_mode.ANALYZE
+        
+        self.analyze_window = analyze_panel(Username = self.current_user)
+        self.main_window_layout.addWidget(self.analyze_window, 0, 1, 30, 16)
+
 
 user_name = 'Administrator_ruilin'
 

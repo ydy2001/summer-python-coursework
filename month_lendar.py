@@ -80,7 +80,7 @@ class Monthlendar(QWidget):
         # $(ruilin) 添加“星期几”标识
         for i in range(7):
             self.month_lendar_layout.addWidget(self.weekday_widgets[i], 1, i, 1, 1)
-            weekday_label = QLabel('\n\n\n\n\n        星期' + str(i + 1), self.weekday_widgets[i])
+            weekday_label = QLabel('\n\n\n\n        星期' + str(i + 1), self.weekday_widgets[i])
         
         # $(ruilin) 为每一天添加一个对应的按钮，其上面的文字显示任务信息
         for i in range(6):

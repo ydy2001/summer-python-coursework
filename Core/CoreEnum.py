@@ -7,10 +7,18 @@ class Task_type(Enum):
     NORMAL = 0
     DAILY = 1
 
+TaskType_to_int = {
+    Task_type.NORMAL : 0,
+    Task_type.DAILY : 1
+}
+
+Int_to_TaskType = { value : key for (key, value) in TaskType_to_int.items()}
+
 @unique
 class UI_mode(Enum):
     TRADITIONAL = 0
     CALANDAR = 1
+    ANALYZE = 2
 
 
 @unique
