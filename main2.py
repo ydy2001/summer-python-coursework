@@ -746,7 +746,9 @@ class MainUI(QMainWindow):
         elif self.current_UI_mode == UI_mode.TRADITIONAL:
             self.clear_layout(self.right_window_layout)
         else:
-            self.clear_layout(self.analyze_window)
+            self.main_window_layout.removeWidget(self.analyze_window)
+            self.clear_layout(self.analyze_window.panel_layout)
+
 
         self.current_UI_mode = UI_mode.CALANDAR
         self.month_calander = Monthlendar(self.schedule)
@@ -761,10 +763,10 @@ class MainUI(QMainWindow):
         elif self.current_UI_mode == UI_mode.CALANDAR:
             self.clear_layout(self.month_calander.month_lendar_layout)
         else:
-            self.clear_layout(self.analyze_window)
+            self.main_window_layout.removeWidget(self.analyze_window)
+            self.clear_layout(self.analyze_window.panel_layout)
 
         self.current_UI_mode = UI_mode.TRADITIONAL
-        self.main_window_layout.removeWidget(self.month_calander)
         self.fill_right()
 
     def analyze_triggered(self):
