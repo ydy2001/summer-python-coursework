@@ -745,6 +745,7 @@ class MainUI(QMainWindow):
             return
         elif self.current_UI_mode == UI_mode.TRADITIONAL:
             self.clear_layout(self.right_window_layout)
+            self.change_user_but.setEnabled(False)
         else:
             self.main_window_layout.removeWidget(self.analyze_window)
             self.clear_layout(self.analyze_window.panel_layout)
@@ -768,12 +769,14 @@ class MainUI(QMainWindow):
 
         self.current_UI_mode = UI_mode.TRADITIONAL
         self.fill_right()
+        self.change_user_but.setEnabled(True)
 
     def analyze_triggered(self):
         if self.current_UI_mode == UI_mode.ANALYZE: 
             return
         elif self.current_UI_mode == UI_mode.TRADITIONAL:
             self.clear_layout(self.right_window_layout)
+            self.change_user_but.setEnabled(False)
         else:
             self.clear_layout(self.month_calander.month_lendar_layout)
 
