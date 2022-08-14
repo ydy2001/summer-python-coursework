@@ -5,7 +5,7 @@ import os.path
 from multiprocessing.sharedctypes import Value
 import sys
 import json
-from main2 import MainUI
+from main import MainUI
 from register import RegisterUI
 
 # from nbformat import write
@@ -23,8 +23,6 @@ from PyQt5.QtWidgets import (
     QScrollArea,
     QMessageBox,  # 消息框
     QInputDialog,
-)
-from PyQt5.QtWidgets import (
     QGridLayout,
     QVBoxLayout,
     QHBoxLayout,

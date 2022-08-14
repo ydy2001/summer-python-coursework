@@ -26,7 +26,6 @@ from PyQt5.QtWidgets import (
     QVBoxLayout,
     QScrollArea,
 )
-from matplotlib import widgets
 from Bridge.BridgeTaskSmallWidget import *
 from Core.CoreSchedule import Schedule
 

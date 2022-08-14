@@ -6,7 +6,6 @@ from multiprocessing.sharedctypes import Value
 import sys
 import json
 
-# from nbformat import write
 from PyQt5.QtWidgets import (
     QApplication,
     QWidget,
@@ -19,8 +18,6 @@ from PyQt5.QtWidgets import (
     QScrollArea,
     QMessageBox,  # 消息框
     QInputDialog,
-)
-from PyQt5.QtWidgets import (
     QGridLayout,
     QVBoxLayout,
     QHBoxLayout,
