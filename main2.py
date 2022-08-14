@@ -579,7 +579,7 @@ class MainUI(QMainWindow):
     def show_history(self):
         if self.history_but.text() == '查看历史完成任务':
             path = '.as/' + self.current_user + '_history'
-            if not os.path.exists(path):
+            if (not os.path.exists(path)) or (os.path.getsize(path) == 0):
                 temp = open(path, 'w')
                 self.history_schedule = CoreSchedule.Schedule()
                 temp.close()
@@ -600,7 +600,7 @@ class MainUI(QMainWindow):
     def show_deleted(self):
         if self.deleted_but.text() == '查看已删除任务':
             path = '.as/' + self.current_user + '_deleted'
-            if not os.path.exists(path):
+            if not os.path.exists(path) or (os.path.getsize(path) == 0):
                 temp = open(path, 'w')
                 deleted_schedule = CoreSchedule.Schedule()
                 temp.close()
@@ -621,7 +621,7 @@ class MainUI(QMainWindow):
     def show_expired(self):
         if self.expired_but.text() == '查看已过期任务':
             path = '.as/' + self.current_user + '_expired'
-            if not os.path.exists(path):
+            if not os.path.exists(path) or (os.path.getsize(path) == 0):
                 temp = open(path, 'w')
                 expired_schedule = CoreSchedule.Schedule()
                 temp.close()
