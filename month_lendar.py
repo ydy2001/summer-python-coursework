@@ -92,20 +92,8 @@ class Monthlendar(QWidget):
 
     def year__month_changed(self):
 
-        # (ruilin) 断开之前的信号与槽的链接
-        # (ruilin) 如果没有下面这几行代码，会导致一个信号链接到多个槽里(多重链接到一个函数)，最后槽函数被多次调用        
-        first_day_of_month = datetime.datetime(
-            year = self.current_year,
-            month = self.current_month,
-            day = 1
-        )
-        cur_day = first_day_of_month.weekday()
-        this_month_days = calendar.Calendar().itermonthdates(self.current_year, self.current_month)
-        for day in this_month_days:
-            if day.month != self.current_month: continue
-            self.widgets[cur_day].clicked.disconnect(self.trigger_display_today)
-            cur_day += 1
-        # (ruilin) /**/
+        
+        self.disconnect_button_all()
 
         self.current_year = int(self.year_spinbox.value())
         self.current_month = int(self.month_spinbox.value())
@@ -265,7 +253,10 @@ class Monthlendar(QWidget):
         else:   # (ruilin) 普通任务是直接删掉
             self.schedule.remove_designated_task(bridge_widget.task)
         
+
+
         
+        self.disconnect_button_all()
         self.flush()
         
         self.clear_layout(self.canvas_layout)
@@ -290,6 +281,22 @@ class Monthlendar(QWidget):
                     temp_bridge_widget = TaskSmallWidget_2(tsk)
                     self.canvas_layout.addWidget(temp_bridge_widget)
                     temp_bridge_widget.del_but.clicked.connect(self.trigger_bridge_widget_del)
+
+    def disconnect_button_all(self):
+        # (ruilin) 断开之前的信号与槽的链接
+        # (ruilin) 如果没有下面这几行代码，会导致一个信号链接到多个槽里(多重链接到一个函数)，最后槽函数被多次调用        
+        first_day_of_month = datetime.datetime(
+            year = self.current_year,
+            month = self.current_month,
+            day = 1
+        )
+        cur_day = first_day_of_month.weekday()
+        this_month_days = calendar.Calendar().itermonthdates(self.current_year, self.current_month)
+        for day in this_month_days:
+            if day.month != self.current_month: continue
+            self.widgets[cur_day].clicked.disconnect(self.trigger_display_today)
+            cur_day += 1
+        # (ruilin) /**/
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
